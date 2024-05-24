@@ -86,8 +86,14 @@ INSTALLED_APPS = [
     "axes",
     "phonenumber_field",
     "django_countries",
+    "allauth",
+    "allauth.account",
+    # # Optional -- requires install using `django-allauth[socialaccount]`.
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
 ]
 
+SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -96,8 +102,9 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Add the account middleware:
+    "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",  # comment it if X-FRAME OPTION is None
-    # "django_htmx.middleware.HtmxMiddleware",
     "axes.middleware.AxesMiddleware",
 ]
 
@@ -115,6 +122,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # # `allauth` needs this from django
+                "django.template.context_processors.request",
             ],
         },
     }
@@ -224,7 +233,7 @@ CLOUDINARY_STORAGE = {
 MEDIA_URL = "/media/"
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
-###########################Security Related Settings########################################
+###########################----------Security Related Settings-----------########################################
 
 # Uncomment these settings only in production
 if not DEBUG:
@@ -233,30 +242,32 @@ if not DEBUG:
     X_FRAME_OPTIONS = "DENY"
     SECURE_SSL_REDIRECT = True
 
-###############################Set Login rate limit For Users#############################
+###############################-----------Set Login rate limit For Users-------------#############################
 AXES_FAILURE_LIMIT = 15  # Number of login attempts allowed before blocking
 AXES_LOCK_OUT_AT_FAILURE = False
 AXES_COOLOFF_TIME = 0.001
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",
+    # `allauth` specific authentication methods, such as login by email
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-# Google api-client library settings
-GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
-GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
-if not DEBUG:
-    GOOGLE_OAUTH_REDIRECT_URI = [
-        "https://osama11111.pythonanywhere.com/accounts/google/login/callback/"
-    ]
-else:
-    GOOGLE_OAUTH_REDIRECT_URI = [
-        "https://diverse-intense-whippet.ngrok-free.app/accounts/google/login/callback/"
-    ]
-    # "http://localhost:8000/accounts/google/login/callback/"
+###################------------------- Google api-client library settings----------------############
+# GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
+# GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
+# if not DEBUG:
+#     GOOGLE_OAUTH_REDIRECT_URI = [
+#         "https://osama11111.pythonanywhere.com/accounts/google/login/callback/"
+#     ]
+# else:
+#     GOOGLE_OAUTH_REDIRECT_URI = [
+#         "https://diverse-intense-whippet.ngrok-free.app/accounts/google/login/callback/"
+#     ]
+# "http://localhost:8000/accounts/google/login/callback/"
 
 
-# csrf settings
+#################-------- csrf settings ----------------######################################
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 if DEBUG:
@@ -265,6 +276,23 @@ else:
     CSRF_TRUSTED_ORIGINS = ["https://osama11111.pythonanywhere.com"]
 
 
+####################---Allauth settings for social account login ----######################
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+        "CLIENT_ID": config("GOOGLE_OAUTH_CLIENT_ID"),
+        "SECRET": config("GOOGLE_OAUTH_CLIENT_SECRET"),
+    }
+}
+
+
+################----------CKeditor seetings-------------##############################################
 CKEDITOR_CONFIGS = {
     "default": {
         "skin": "moono",

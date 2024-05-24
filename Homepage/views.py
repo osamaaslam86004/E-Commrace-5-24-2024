@@ -24,7 +24,7 @@ from Homepage.models import (
     CustomerServiceProfile,
     ManagerProfile,
     AdministratorProfile,
-    SocialAccount,
+    CustomSocialAccount,
 )
 from django.http import (
     HttpResponseForbidden,
@@ -60,26 +60,23 @@ from axes.decorators import axes_dispatch
 from checkout.models import Payment
 
 
-
 import cloudinary
+
 if not settings.DEBUG:
     cloudinary.config(
-    cloud_name="dh8vfw5u0",
-    api_key="667912285456865",
-    api_secret="QaF0OnEY-W1v2GufFKdOjo3KQm8",
-    api_proxy = "http://proxy.server:3128"
-)
+        cloud_name="dh8vfw5u0",
+        api_key="667912285456865",
+        api_secret="QaF0OnEY-W1v2GufFKdOjo3KQm8",
+        api_proxy="http://proxy.server:3128",
+    )
 else:
     cloudinary.config(
-    cloud_name="dh8vfw5u0",
-    api_key="667912285456865",
-    api_secret="QaF0OnEY-W1v2GufFKdOjo3KQm8"
-)
+        cloud_name="dh8vfw5u0",
+        api_key="667912285456865",
+        api_secret="QaF0OnEY-W1v2GufFKdOjo3KQm8",
+    )
 import cloudinary.uploader
 from cloudinary.uploader import upload
-
-
-
 
 
 class HomePageView(TemplateView):
@@ -124,7 +121,7 @@ class SignupView(View):
             "email"
         )  # Assuming the email comes from the form POST data
 
-        existing_social_user = SocialAccount.objects.filter(
+        existing_social_user = CustomSocialAccount.objects.filter(
             user_info__icontains=email
         ).exists()
         # Check if the user with the email already exists
@@ -294,7 +291,6 @@ def custom_password_reset(request):
                 # print(response.status_code)
                 # print(response.content)  # it will be empty : b''
 
-
                 # response = sg.send(message)
 
                 # Check the response status and return appropriate message
@@ -306,7 +302,7 @@ def custom_password_reset(request):
                     # If something went wrong, redirect to a different view or page
                     return redirect("Homepage:signup")
             except Exception as e:
-                return JsonResponse({'message': f'Error: {str(e)}'}, status=500)
+                return JsonResponse({"message": f"Error: {str(e)}"}, status=500)
                 # return redirect("Homepage:login")
         else:
             messages.error(request, "No user found with this email.")
@@ -429,7 +425,7 @@ def your_callback_view(request):
             email = user_info.get("email")
             user = CustomUser.objects.filter(email=email).first()
             if user:
-                social_account, created = SocialAccount.objects.get_or_create(
+                social_account, created = CustomSocialAccount.objects.get_or_create(
                     user=user,
                     user_info=user_info,
                     defaults={
@@ -463,7 +459,7 @@ def your_callback_view(request):
                     email=email, username=email, user_type="CUSTOMER"
                 )
                 if user_created:
-                    social_account, created = SocialAccount.objects.get_or_create(
+                    social_account, created = CustomSocialAccount.objects.get_or_create(
                         user=user,
                         user_info=user_info,
                         access_token=access_token,
@@ -479,14 +475,14 @@ def your_callback_view(request):
                         if "user_id" in request.session:
                             logout(request)
                             request.session["user_id"] = social_account.id
-                            request.session[
-                                "access_token"
-                            ] = social_account.access_token
+                            request.session["access_token"] = (
+                                social_account.access_token
+                            )
                         else:
                             request.session["user_id"] = social_account.id
-                            request.session[
-                                "access_token"
-                            ] = social_account.access_token
+                            request.session["access_token"] = (
+                                social_account.access_token
+                            )
                         messages.success(request, "Welcome! you are logged-in")
                     else:
                         pass
@@ -506,7 +502,7 @@ def read_user_document(request):
     # Retrieve the stored access token and refresh token for the user from your database
 
     user = CustomUser.objects.get(email="osama.aslam.86004@gmail.com")
-    social_account = SocialAccount.objects.get(user=user)
+    social_account = CustomSocialAccount.objects.get(user=user)
 
     access_token = social_account.access_token
     refresh_token = social_account.refresh_token
@@ -551,13 +547,13 @@ class CustomLogoutView(View, SuccessMessageMixin):
     def get(self, request):
         if self.request.user.is_authenticated:
             if "user_id" in self.request.session:
-                if not SocialAccount.objects.filter(
+                if not CustomSocialAccount.objects.filter(
                     id=self.request.session.get("user_id"), user=self.request.user
                 ).exists():
                     logout(request)
                 else:
                     social_id = request.session.get("user_id")
-                    social_user = SocialAccount.objects.get(id=social_id)
+                    social_user = CustomSocialAccount.objects.get(id=social_id)
                     social_user.access_token = ""
                     social_user.refresh_token = ""
                     social_user.save()
@@ -635,9 +631,11 @@ class CustomerProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = SocialAccount.objects.get_or_create(id=social_id)
+                social_user, created = CustomSocialAccount.objects.get_or_create(
+                    id=social_id
+                )
                 # model level permissions
-                content_type = ContentType.objects.get_for_model(SocialAccount)
+                content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
@@ -657,7 +655,7 @@ class CustomerProfilePageView(PermissionRequiredMixin, TemplateView):
                     return clean_permissions
                 else:
                     pass
-            except SocialAccount.DoesNotExist:
+            except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
 
@@ -821,9 +819,11 @@ class SellerProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = SocialAccount.objects.get_or_create(id=social_id)
+                social_user, created = CustomSocialAccount.objects.get_or_create(
+                    id=social_id
+                )
                 # model level permissions
-                content_type = ContentType.objects.get_for_model(SocialAccount)
+                content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
@@ -843,7 +843,7 @@ class SellerProfilePageView(PermissionRequiredMixin, TemplateView):
                     return clean_permissions
                 else:
                     pass
-            except SocialAccount.DoesNotExist:
+            except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
 
@@ -1002,9 +1002,11 @@ class CSRProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = SocialAccount.objects.get_or_create(id=social_id)
+                social_user, created = CustomSocialAccount.objects.get_or_create(
+                    id=social_id
+                )
                 # model level permissions
-                content_type = ContentType.objects.get_for_model(SocialAccount)
+                content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
@@ -1024,7 +1026,7 @@ class CSRProfilePageView(PermissionRequiredMixin, TemplateView):
                     return clean_permissions
                 else:
                     pass
-            except SocialAccount.DoesNotExist:
+            except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
 
@@ -1185,9 +1187,11 @@ class ManagerProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = SocialAccount.objects.get_or_create(id=social_id)
+                social_user, created = CustomSocialAccount.objects.get_or_create(
+                    id=social_id
+                )
                 # model level permissions
-                content_type = ContentType.objects.get_for_model(SocialAccount)
+                content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
@@ -1207,7 +1211,7 @@ class ManagerProfilePageView(PermissionRequiredMixin, TemplateView):
                     return clean_permissions
                 else:
                     pass
-            except SocialAccount.DoesNotExist:
+            except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
 
@@ -1361,9 +1365,11 @@ class AdminProfilePageView(LoginRequiredMixin, PermissionRequiredMixin, Template
             return clean_permissions
         else:
             try:
-                social_user, created = SocialAccount.objects.get_or_create(id=social_id)
+                social_user, created = CustomSocialAccount.objects.get_or_create(
+                    id=social_id
+                )
                 # model level permissions
-                content_type = ContentType.objects.get_for_model(SocialAccount)
+                content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
@@ -1383,7 +1389,7 @@ class AdminProfilePageView(LoginRequiredMixin, PermissionRequiredMixin, Template
                     return clean_permissions
                 else:
                     pass
-            except SocialAccount.DoesNotExist:
+            except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
 
@@ -1507,7 +1513,7 @@ def send_email(request):
     dynamic_data = {
         "customerName": "John Doe",
         "orderDate": "04/12/23",
-        "customerEmail": "osama.aslam.86004@gmail.com"
+        "customerEmail": "osama.aslam.86004@gmail.com",
         # Add more dynamic data as needed
     }
 
@@ -1600,7 +1606,6 @@ def send_sms(request):
                     phone_number = user_profile.phone_number
                     print(f"generated_otp___________{request.session['generated_otp']}")
 
-
                     if helper_function(generated_otp, phone_number):
                         form = OTPForm
                         messages.success(
@@ -1661,18 +1666,17 @@ def send_sms(request):
             return JsonResponse({"message": f"Error: {str(e)}"}, status=500)
 
 
-
-
 def helper_function(generated_otp, phone_number):
     import requests
+
     # Twilio API endpoint
     endpoint = f"https://api.twilio.com/2010-04-01/Accounts/{settings.ACCOUNT_SID}/Messages.json"
 
     # Construct the request payload
     payload = {
         "From": settings.FROM_,
-        "To": str(phone_number), # otherwise 'PhoneNumber' object is not iterable
-        "Body": f"Your OTP is: {generated_otp}"
+        "To": str(phone_number),  # otherwise 'PhoneNumber' object is not iterable
+        "Body": f"Your OTP is: {generated_otp}",
     }
 
     # HTTP Basic Authentication credentials
@@ -1687,8 +1691,6 @@ def helper_function(generated_otp, phone_number):
         return True
     else:
         return False
-
-
 
     # # message body
     # message_body = f"Your OTP is: {generated_otp}"

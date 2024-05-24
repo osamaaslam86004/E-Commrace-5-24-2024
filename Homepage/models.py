@@ -152,7 +152,7 @@ class AdministratorProfile(models.Model):
     experience_years = models.PositiveIntegerField(blank=False, null=True)
 
 
-class SocialAccount(models.Model):
+class CustomSocialAccount(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
     )
