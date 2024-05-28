@@ -22,7 +22,16 @@ def remove_from_cart(request, content_id, product_id):
     if request.method == "GET":
         if "user_id" and "cart_items" in request.session:
             content_type = ContentType.objects.get_for_id(content_id)
-            cart = Cart.objects.get(user=request.user)
+            # cart = Cart.objects.get(user=request.user)
+
+            cart = (
+                Cart.objects.filter(user=request.user)
+                .exclude(cart_payment__isnull=False)
+                .select_related("user")
+            )
+
+            cart = cart.first()
+
             cart_item = CartItem.objects.get(
                 cart=cart, content_type=content_type, object_id=product_id
             )
@@ -129,7 +138,7 @@ def add_to_cart_helper(request, content_type_id, product_id):
     cart = (
         Cart.objects.filter(user=request.user)
         .exclude(cart_payment__isnull=False)
-        .select_related("cart_payment", "user")
+        .select_related("user")
     )
 
     if not cart.exists():
