@@ -213,9 +213,6 @@ def charge_status(charge_id, user_id, cart_id):
         )
         payment_object.payment_status = Payment.CHARGE_STATUS[0][0]
         payment_object.save()
-        print(f"*********************{payment_object.payment_status}")
-
-        print(f"payment_object______________{payment_object}")
 
     except Payment.DoesNotExist:
         return JsonResponse(
@@ -234,11 +231,11 @@ def updating_refund_status(refund, request):
             cart=cart,
             stripe_refund_id=refund["id"],
             refund_status=Refund.REFUND_CHOICES[0][0],
-            cart_item_id=cartitem_id,
+            cartitem=cart_item,
         )
         refund_object.save()
+
     except Exception as e:
-        print(f"______________________{str(e)}")
         return JsonResponse({"error": str(e)})
 
 
@@ -277,7 +274,7 @@ class Charge_Refund(View):
                     request, f"Refund successful. Refund ID: {refund['id']}"
                 )
                 # return JsonResponse({"success": True, "refund": refund})
-                return render(self.request, "view_orders.html")
+                return redirect("/")
 
             except stripe.error.StripeError as e:
                 messages.error(request, f"Error refunding charge: {str(e)}")
@@ -292,17 +289,18 @@ class View_Orders(View):
     def get(self, request, **kwargs):
         user_id = self.request.session["user_id"]
         # get the cart for which user has confirmed Checkout
-        carts = Cart.objects.filter(
-            user__id=user_id, cart_payment__stripe_charge_id__isnull=False
+
+        cart_objects = Cart.objects.filter(user__id=user_id).select_related("user")
+
+        carts = cart_objects.filter(
+            cart_payment__stripe_charge_id__isnull=False
+        ).order_by("timestamp")
+
+        payment_objects = (
+            Payment.objects.filter(stripe_charge_id__isnull=False, user__id=user_id)
+            .select_related("cart", "user")
+            .order_by("timestamp")
         )
-        print(f"^^^^^^^^^^^^^^^^^^{carts}")
-        payment_object = Payment.objects.filter(user__id=user_id)
-        if payment_object:
-            payment = payment_object[0]
-        else:
-            payment = None
-        context = {
-            "carts": carts,
-            "payment": payment,
-        }
+
+        context = {"carts": carts, "payment_objects": payment_objects or None}
         return render(self.request, "view_orders.html", context=context)

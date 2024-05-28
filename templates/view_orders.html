@@ -20,41 +20,61 @@
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Your Orders</h4>
+
                     {% for cart in carts %}
                     <div class="card mb-3">
                         <div class="card-body">
-                            <h5 class="card-title">Order ID: {{ cart.cart_payment.id }}</h5>
+                            <h5 class="card-title">Order ID:
+                                {{ cart.id }}</h5>
+
                             <div style="display: flex;">
-                                <p class="card-text"><b>Stripe Charge ID</b>: {{ cart.cart_payment.stripe_charge_id }}
+                                <p class="card-text"><b>Stripe Charge ID</b>:
+                                    {{ cart.cart_payment.get.stripe_charge_id }}
                                 </p>
                                 <p class="card-text"><b>Stripe Customer ID:</b>
-                                    {{ cart.cart_payment.stripe_customer_id}}</p>
+                                    {{ cart.cart_payment.get.stripe_customer_id}}</p>
                             </div>
+
+
                             {% for cartitem in cart.cartitem_set.all %}
-                            <p class="card-text">Quantity: {{ cartitem.quantity }}</p>
-                            {% with product=cartitem.content_object %}
-                            {% if product.id %}
-                            <p class="card-text">Item ID: {{ product.id }}</p>
-                            {% else %}
-                            <p class="card-text">Item ID: {{ product.monitor_id }}</p>
-                            {% endif %}
-                            <div style="display: flex;">
+                            <div style="margin-bottom: 50px;">
 
-                                <div>
-                                    <p class="card-text">Price: ${{ product.price }}</p>
-                                    Image: <img src="{{ product.image_1 }}" class="img-fluid" alt="Product Image"
-                                        style="height: 101px; width:101px;">
+                                <div style="display: flex; align-items:center; justify-content:evenly;">
+                                    <div style="margin-left: 10px;">
+                                        <p class="card-text"><b>Quantity:</b> {{ cartitem.quantity }}</p>
+                                    </div>
+
+                                    {% with product=cartitem.content_object %}
+                                    {% if product.id %}
+                                    <div style="margin-left: 10px;">
+                                        <p class="card-text"><b>Item ID:</b> {{ product.id }}</p>
+                                    </div>
+
+                                    {% else %}
+                                    <div style="margin-left: 30px;">
+                                        <p class="card-text"><b>Item ID:</b> {{ product.monitor_id }}</p>
+                                    </div>
+
+                                    {% endif %}
+                                    <div style="margin-left: 30px;">
+                                        <p class="card-text">Price: ${{ product.price }}</p>
+                                    </div>
+
+                                    <div style="margin-left: 30px;">
+                                        Image: <img src="{{ product.image_1 }}" class="img-fluid" alt="Product Image"
+                                            style="height: 101px; width:101px;">
+                                    </div>
+                                    {% endwith %}
                                 </div>
-                                {% endwith %}
 
-                                {% if not cartitem.cart.cart_refund.get.refund_status == "REFUNDED" %}
+                                {% if not cartitem.cartitem_refund.refund_status == "REFUNDED" %}
                                 <div style="margin-left: 201px;">
                                     <a href="{% url 'checkout:refund' id=cartitem.id %}" class="btn btn-info"
                                         style="margin-right: 51px;">Refund</a>
                                 </div>
                                 {% else %}
                                 <div style="margin-left: 201px;">
-                                    <a href="#" class="btn btn-info" style="margin-right: 51px;">Refunded</a>
+                                    <p class="btn btn-info" style="margin-right: 51px;">Refunded</p>
                                 </div>
                                 {% endif %}
 
@@ -63,6 +83,7 @@
                         </div>
                     </div>
                     {% endfor %}
+
                 </div>
             </div>
             {% else %}

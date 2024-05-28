@@ -1,6 +1,12 @@
 from django.db import models
 from Homepage.models import CustomUser
-from cart.models import Cart
+from cart.models import Cart, CartItem
+
+
+#     Many      -  To     -   One
+
+# Model contains     ==>      Reference Model
+# ForeignKey
 
 
 class Payment(models.Model):
@@ -9,6 +15,13 @@ class Payment(models.Model):
     user = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name="user_payment", null=True
     )
+
+    # A ForeignKey in Django is used to define a many-to-one relationship.
+    # This means that each instance of the model containing the ForeignKey
+    # (in this case, Payment) is related to one instance of the referenced model
+    # (in this case, Cart), but each instance of the referenced model can be
+    # related to multiple instances of the model containing the ForeignKey.
+
     cart = models.ForeignKey(
         Cart, on_delete=models.CASCADE, related_name="cart_payment", null=True
     )
@@ -30,8 +43,10 @@ class Refund(models.Model):
     cart = models.ForeignKey(
         Cart, on_delete=models.CASCADE, related_name="cart_refund", null=True
     )
+    cartitem = models.OneToOneField(
+        CartItem, on_delete=models.CASCADE, related_name="cartitem_refund", null=True
+    )
     stripe_refund_id = models.CharField(max_length=150, null=True, default=0)
     refund_status = models.CharField(
         max_length=25, choices=REFUND_CHOICES, default="NO_REFUND"
     )
-    cart_item_id = models.PositiveIntegerField(null=True)
