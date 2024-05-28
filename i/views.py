@@ -711,7 +711,7 @@ def monitor_detail_view(request, product_id):
     # It's useful when you want to retrieve specific fields from the database rather than entire model instances.
     # When you use values_list(), you can specify which fields you want to retrieve
 
-    print(f"features----------------: {monitor.special_features.all().values_list("name", flat=True)}")
+    print(f"features----------------: {monitor.special_features.all().values_list('name', flat=True)}")
 
 
     context = {
