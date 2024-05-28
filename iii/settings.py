@@ -244,7 +244,7 @@ if not DEBUG:
 
 ###############################-----------Set Login rate limit For Users-------------#############################
 SILENCED_SYSTEM_CHECKS = ["axes.W003"]
-AXES_ENABLED = False
+AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 15  # Number of login attempts allowed before blocking
 AXES_LOCK_OUT_AT_FAILURE = False
 AXES_COOLOFF_TIME = 0.001
