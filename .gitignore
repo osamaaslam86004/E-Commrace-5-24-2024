@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+0001_initial
+0003_initial
+0004_initial
+0005_initial
 
 # C extensions
 *.so

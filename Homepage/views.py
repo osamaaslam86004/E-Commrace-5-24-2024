@@ -259,51 +259,6 @@ def custom_password_reset(request):
                 print(response.status_code)
                 print(response.headers)
 
-                # import requests
-                # import json
-
-                # # Define the SendGrid API endpoint
-                # SENDGRID_API_ENDPOINT = "https://api.sendgrid.com/v3/mail/send"
-
-                # # Define your SendGrid API key
-                # SENDGRID_API_KEY = settings.SENDGRID_API_KEY
-
-                # # Define the email message
-                # message = {
-                #     "personalizations": [
-                #         {
-                #             "to": [{"email": email}],
-                #             "subject": "Reset"
-                #         }
-                #     ],
-                #     "from": {"email": settings.CLIENT_EMAIL},
-                #     "content": [
-                #         {
-                #             "type": "text/html",
-                #             "value": f'Click the link to reset your password: <a href="{reset_url}">{reset_url}</a>'
-                #         }
-                #     ]
-                # }
-                # # Convert the message to JSON format
-                # message_json = json.dumps(message)
-
-                # # Set the headers with the API key
-                # headers = {
-                #     "Authorization": f"Bearer {SENDGRID_API_KEY}",
-                #     "Content-Type": "application/json"
-                # }
-
-                # # Send the email using the requests library
-                # # response = requests.post(SENDGRID_API_ENDPOINT, headers=headers, data=message_json,
-                # #                         verify = False)
-                # response = requests.post(SENDGRID_API_ENDPOINT, headers=headers, data=message_json,
-                #                         verify = True)
-                # Check the response
-                # print(response.status_code)
-                # print(response.content)  # it will be empty : b''
-
-                # response = sg.send(message)
-
                 # Check the response status and return appropriate message
                 if response.status_code == 202:
                     return HttpResponseRedirect(reverse("Homepage:password_reset_done"))
