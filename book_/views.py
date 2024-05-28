@@ -28,23 +28,16 @@ from django.views.generic.edit import CreateView, UpdateView
 from i.browsing_history import add_product_to_browsing_history, your_browsing_history
 
 
-
 import cloudinary
+
 cloudinary.config(
     cloud_name="dh8vfw5u0",
     api_key="667912285456865",
     api_secret="QaF0OnEY-W1v2GufFKdOjo3KQm8",
-    api_proxy = "http://proxy.server:3128"
+    api_proxy="http://proxy.server:3128",
 )
 import cloudinary.uploader
 from cloudinary.uploader import upload
-
-
-
-
-
-
-
 
 
 class Create_Book_Formats_View(SuccessMessageMixin, CreateView):
@@ -108,12 +101,12 @@ class Create_Book_Formats_View(SuccessMessageMixin, CreateView):
 
                         resized_image_url = image_data["url"]
                         setattr(book_format, f"image_{key[-1]}", resized_image_url)
-                        print(f"$$$$$$4{image_file}")
                     else:
                         messages.info(
                             self.request,
-                            "images did not uploaded properly, Try again!",
+                            "Images did not upload properly, try again!",
                         )
+                        return self.form_invalid(form)
 
                 try:
                     # Set relationships and other attributes for book_format
@@ -131,16 +124,16 @@ class Create_Book_Formats_View(SuccessMessageMixin, CreateView):
                 messages.error(self.request, "Please upload all three images")
                 return self.form_invalid(form)
         else:
+            # Print form errors
+            print("Author form errors:", book_author_name_form.errors)
+            print("Format form errors:", book_format_form.errors)
             messages.error(self.request, "Form not valid")
             return self.form_invalid(form)
 
         return super().form_valid(form)
 
     def all_images_uploaded_by_user(self, uploaded_images):
-        if all(uploaded_images.values()):
-            return True
-        else:
-            False
+        return all(uploaded_images.values())
 
 
 @method_decorator(login_required, name="dispatch")
@@ -465,9 +458,9 @@ class Book_Detail_View(DetailView):
             matching_ratings = ratings.filter(user=review.user)
             if matching_ratings.exists():
                 rating = matching_ratings.first()
-                review_rating_dict[
-                    review
-                ] = rating  # review_rating_dict is a dictionary of review objects
+                review_rating_dict[review] = (
+                    rating  # review_rating_dict is a dictionary of review objects
+                )
                 #    and corresponding rating objects
 
         # formats = formats.annotate(avg_rating=Avg('rating_format__rating'),

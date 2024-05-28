@@ -28,9 +28,12 @@
 {% else %}
 
 <div style="margin-top: 21px; margin-bottom:41px; width: 500px;">
+
+
     <form hx-post="{% url 'i:add_monitor' %}" enctype="multipart/form-data">
         {% csrf_token %}
         {% bootstrap_form monitor_form %}
+
 
         {% bootstrap_button type="submit" content="Submit" style="width:500px;" %}
 

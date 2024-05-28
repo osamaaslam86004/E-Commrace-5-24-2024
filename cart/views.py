@@ -6,6 +6,7 @@ from collections import Counter
 from django.http import JsonResponse
 from decimal import Decimal
 from django.contrib import messages
+from checkout.models import Payment
 
 
 def add_to_cart(request, content_id, product_id):
@@ -67,9 +68,9 @@ def cart_view(request):
     if "user_id" in request.session and "cart_items" in request.session:
         cart_items = your_cart_items(request)
 
-        cart = Cart.objects.get(user=request.user)
-        if cart:
-            cart_items_ = cart.cartitem_set.all()
+        # cart = Cart.objects.get(user=request.user)
+        # if cart:
+        #     cart_items_ = cart.cartitem_set.all()
 
         Content_Type_id = []
         product_id = []
@@ -95,12 +96,20 @@ def cart_view(request):
             results.append((count, key[0], key[1], product))
         print(results)
 
+        cart_total = 0
+        for item in results:
+            product = item[3]
+            cart_total += product.price * item[0]  # item[0] is the count of the product
+
         return render(
             request,
             "cart.html",
             {
-                "cart_items": cart_items_,
-                "cart": cart,
+                # "cart_items": cart_items_,
+                # "cart": cart,
+                "cart_items": len(results),
+                "sub_total": cart_total,
+                "total_amount": cart_total + 53,
                 "results": results,
                 "tax": 53.99,
             },
@@ -117,18 +126,23 @@ def add_to_cart_helper(request, content_type_id, product_id):
     product = get_object_or_404(model_class, pk=product_id)
     user_id = request.session.get("user_id")
 
-    cart = Cart.objects.filter(user=request.user)
-    if not cart:
+    cart = (
+        Cart.objects.filter(user=request.user)
+        .exclude(cart_payment__isnull=False)
+        .select_related("cart_payment", "user")
+    )
+
+    if not cart.exists():
         cart = Cart.objects.create(user=request.user)
-        cart.save()
     else:
-        cart = cart[0]
+        cart = cart.first()
 
     cart_item, cart_item_created = CartItem.objects.get_or_create(
         cart=cart,
         content_type=content_type,
         object_id=product_id,
-        defaults={"quantity": 1, "price": product.price},
+        quantity=1,
+        price=product.price,
     )
 
     if not cart_item_created:

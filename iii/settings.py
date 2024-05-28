@@ -243,6 +243,8 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
 
 ###############################-----------Set Login rate limit For Users-------------#############################
+SILENCED_SYSTEM_CHECKS = ["axes.W003"]
+AXES_ENABLED = False
 AXES_FAILURE_LIMIT = 15  # Number of login attempts allowed before blocking
 AXES_LOCK_OUT_AT_FAILURE = False
 AXES_COOLOFF_TIME = 0.001
@@ -254,17 +256,20 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ###################------------------- Google api-client library settings----------------############
-# GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
-# GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
-# if not DEBUG:
-#     GOOGLE_OAUTH_REDIRECT_URI = [
-#         "https://osama11111.pythonanywhere.com/accounts/google/login/callback/"
-#     ]
-# else:
-#     GOOGLE_OAUTH_REDIRECT_URI = [
-#         "https://diverse-intense-whippet.ngrok-free.app/accounts/google/login/callback/"
-#     ]
-# "http://localhost:8000/accounts/google/login/callback/"
+GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
+
+GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
+
+if not DEBUG:
+    GOOGLE_OAUTH_REDIRECT_URI = (
+        "https://osama11111.pythonanywhere.com/accounts/google/login/callback/"
+    )
+else:
+    GOOGLE_OAUTH_REDIRECT_URI = (
+        "https://diverse-intense-whippet.ngrok-free.app/accounts/google/login/callback/"
+    )
 
 
 #################-------- csrf settings ----------------######################################

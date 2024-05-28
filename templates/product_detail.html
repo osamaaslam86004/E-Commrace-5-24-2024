@@ -500,8 +500,8 @@
                             <p><b>Quantity Available:</b> {{ monitor.quantity_available }}</p>
                             <!-- Add more attributes here as needed -->
                             <p><b>Special Features:</b>
-                                {% for feature in monitor.special_features.all %}
-                                {{ feature.name }}
+                                {% for feature in sp %}
+                                {{ feature }}
                                 {% if not forloop.last %}, {% endif %}
                                 {% endfor %}
                             </p>

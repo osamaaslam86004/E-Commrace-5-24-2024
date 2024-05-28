@@ -216,7 +216,7 @@ class SpecialFeaturesForm(forms.ModelForm):
 
     class Meta:
         model = Special_Features
-        fields = "__all__"
+        fields = ["choose_special_features"]
 
 
 class MonitorsForm(forms.ModelForm):
@@ -307,12 +307,14 @@ class MonitorsForm(forms.ModelForm):
         initial=True,
         label="Choose the status of the book",
     )
-    special_features = forms.ModelMultipleChoiceField(
+
+    choose_special_features = forms.ModelMultipleChoiceField(
         queryset=Special_Features.objects.all(),
         widget=forms.CheckboxSelectMultiple(
             attrs={"class": "special-features-checkbox"}
         ),
     )
+
     class Meta:
         model = Monitors
         fields = [
@@ -336,9 +338,9 @@ class MonitorsForm(forms.ModelForm):
             "built_speakers",
             "price",
             "quantity_available",
-            "special_features",
+            "choose_special_features",
         ]
-        exclude = ["restock_threshold"]
+        exclude = ["restock_threshold", "special_features"]
         labels = {
             "name": "Monitor Name",
             "aspect_ratio": "Aspect Ratio",
@@ -374,6 +376,15 @@ class MonitorsForm(forms.ModelForm):
                 "max_value": "Price cannot exceed 999999.99.",
             },
         }
+
+    # Do not comment this method : Not null contraint error will arise
+    def clean_item_weight(self):
+        item_weight = self.cleaned_data.get("item_weight")
+        if item_weight < 0 or item_weight > 2147483647:
+            raise forms.ValidationError(
+                "Item weight must greater than 0 and less than 2147483647."
+            )
+        return item_weight
 
 
 class LaptopAccessoriesForm(forms.ModelForm):

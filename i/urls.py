@@ -67,7 +67,7 @@ urlpatterns = [
     ),
     # Delete monitor product
     path(
-        "profile/update-product/monitors/<int:product_id>/",
+        "profile/update-product/monitors/delete/<int:product_id>/",
         Delete_Monitors_Product.as_view(),
         name="delete_monitor",
     ),

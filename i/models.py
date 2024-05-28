@@ -189,7 +189,7 @@ class Monitors(models.Model):
     refresh_rate = models.CharField(max_length=255, blank=False)
     mounting_type = models.CharField(max_length=255, blank=False)
     item_dimensions = models.CharField(max_length=255, blank=True)
-    item_weight = models.PositiveIntegerField(blank=True)
+    item_weight = models.PositiveIntegerField()
     voltage = models.IntegerField(blank=False, default=220)
     color = models.CharField(max_length=50, blank=True)
     special_features = models.ManyToManyField(Special_Features)

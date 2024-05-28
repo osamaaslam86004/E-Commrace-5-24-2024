@@ -58,7 +58,9 @@ from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMix
 from i.browsing_history import your_browsing_history
 from axes.decorators import axes_dispatch
 from checkout.models import Payment
+import logging
 
+logger = logging.getLogger(__name__)
 
 import cloudinary
 
@@ -105,6 +107,12 @@ class HomePageView(TemplateView):
         context["images"] = image_urls
         context["cart_url"] = cart_url
         context["zipped"] = zipped
+
+        if "user_id" in self.request.session:
+            logger.info("user id-----------: %s", self.request.session["user_id"])
+            logger.info(
+                "request.user-----------: %s", self.request.user.is_authenticated
+            )
         return context
 
 
@@ -156,12 +164,15 @@ class CustomLoginView(View):
     def start_cookie_session(self, request):
         # Start a cookie-based session by setting a value in the cookie
         self.request.session["user_id"] = self.request.user.id
+        logger.info("start cookie session: %s", self.request.session["user_id"])
         # You don't need to manually set the cookie here; Django handles it internally
         # The session data will be stored in the HTTP-only cookie based on the settings
 
     def check_existing_cookie_session(self, request):
         # Check if the cookie-based session exists for the logged-in user
-        return "user_id" in self.request.session
+        user_id_exists = "user_id" in self.request.session
+        logger.info("check existing cookie session: %s", user_id_exists)
+        return user_id_exists
 
     def get(self, request):
         if request.user.is_authenticated:
@@ -423,72 +434,50 @@ def your_callback_view(request):
         if user_info_response.status_code == 200:
             user_info = user_info_response.json()
             email = user_info.get("email")
-            user = CustomUser.objects.filter(email=email).first()
-            if user:
-                social_account, created = CustomSocialAccount.objects.get_or_create(
-                    user=user,
-                    user_info=user_info,
-                    defaults={
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
-                    },
-                )
-                if not created:
-                    social_account.access_token = (access_token,)
+
+            try:
+                # Check if the user already exists
+                user = CustomUser.objects.get(email=email)
+                try:
+                    # Check if the social account already exists
+                    social_account = CustomSocialAccount.objects.get(user=user)
+                    # Update the access token and user info
+                    social_account.access_token = access_token
+                    social_account.user_info = user_info
                     social_account.refresh_token = refresh_token
                     social_account.save()
-                    anonymous_social_user = social_account.user
-                    if (
-                        "user_id" in request.session
-                        and request.session.get("user_id") == user.id
-                    ):
-                        login(
-                            request,
-                            anonymous_social_user,
-                            backend="django.contrib.auth.backends.ModelBackend",
-                        )
-                    else:
-                        logout(request)
-                        request.session["user_id"] = social_account.id
-                        request.session["access_token"] = social_account.access_token
-                    messages.success(request, "Welcome back, you are logged-in")
-                else:
-                    pass
-            else:
-                user, user_created = CustomUser.objects.get_or_create(
-                    email=email, username=email, user_type="CUSTOMER"
-                )
-                if user_created:
-                    social_account, created = CustomSocialAccount.objects.get_or_create(
+
+                except CustomSocialAccount.DoesNotExist:
+                    # Create the social account if it doesn't exist
+                    CustomSocialAccount.objects.create(
                         user=user,
-                        user_info=user_info,
                         access_token=access_token,
+                        user_info=user_info,
                         refresh_token=refresh_token,
                     )
-                    if created:
-                        anonymous_social_user = social_account.user
-                        login(
-                            request,
-                            anonymous_social_user,
-                            backend="django.contrib.auth.backends.ModelBackend",
-                        )
-                        if "user_id" in request.session:
-                            logout(request)
-                            request.session["user_id"] = social_account.id
-                            request.session["access_token"] = (
-                                social_account.access_token
-                            )
-                        else:
-                            request.session["user_id"] = social_account.id
-                            request.session["access_token"] = (
-                                social_account.access_token
-                            )
-                        messages.success(request, "Welcome! you are logged-in")
-                    else:
-                        pass
-                else:
-                    pass
+            except CustomUser.DoesNotExist:
+                # Create a new user if it doesn't exist
+                user = CustomUser.objects.create(
+                    email=email, username=email, user_type="SELLER"
+                )
+                # Create the social account for the new user
+                social_account = CustomSocialAccount.objects.create(
+                    user=user,
+                    access_token=access_token,
+                    user_info=user_info,
+                    refresh_token=refresh_token,
+                )
 
+            if "user_id" in request.session and "social_id" in request.session:
+                logout(request)
+
+            # Log the user in
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            request.session["social_id"] = social_account.id
+            request.session["user_id"] = social_account.user.id
+            request.session["access_token"] = social_account.access_token
+
+            messages.success(request, "Welcome! you are logged-in")
             return redirect("Homepage:Home")
             # return redirect('Homepage:google_drive')
         else:
@@ -545,40 +534,52 @@ class CustomLogoutView(View, SuccessMessageMixin):
     success_message = "You have been logged out successfully"
 
     def get(self, request):
-        if self.request.user.is_authenticated:
-            if "user_id" in self.request.session:
-                if not CustomSocialAccount.objects.filter(
-                    id=self.request.session.get("user_id"), user=self.request.user
-                ).exists():
-                    logout(request)
-                else:
-                    social_id = request.session.get("user_id")
-                    social_user = CustomSocialAccount.objects.get(id=social_id)
-                    social_user.access_token = ""
-                    social_user.refresh_token = ""
-                    social_user.save()
-
-                    if self.google_logout(self.request, social_user.access_token):
-                        logout(self.request)
-                        messages.success(self.request, "You are Logged-Out!")
+        try:
+            if request.user.is_authenticated:
+                if "user_id" in request.session:
+                    user_id = request.session.get("user_id")
+                    if not CustomSocialAccount.objects.filter(
+                        id=user_id, user=request.user
+                    ).exists():
+                        logout(request)
                     else:
-                        logout(self.request)
-                        return JsonResponse({"error": "Unable to make you log-out"})
+                        social_user = CustomSocialAccount.objects.get(id=user_id)
+                        if self.google_logout(request, social_user.access_token):
+                            logout(request)
+                            messages.success(request, self.success_message)
+                        else:
+                            messages.error(
+                                request, "Unable to log you out from Google."
+                            )
+                        try:
+                            social_user.access_token = ""
+                            social_user.refresh_token = ""
+                            social_user.save()
+
+                        except Exception as e:
+                            logger.exception("Error saving social user: %s", e)
+                            messages.error(request, "{e}")
+                else:
+                    messages.error(request, "You are not logged in. Please login!")
             else:
-                messages.error(request, "You are Not Log in. Please login!")
+                messages.error(request, "You are not logged in. Please login!")
+        except Exception as e:
+            logger.exception("Error during logout: %s", e)
+            messages.error(request, "An error occurred during logout.")
         return redirect("Homepage:login")
 
     def google_logout(self, request, access_token):
         revoke_token_url = "https://oauth2.googleapis.com/revoke"
         params = {"token": access_token}
 
-        # Revoke the access token
-        revoke_response = requests.post(revoke_token_url, params=params)
-
-        if revoke_response.status_code != 200:
-            return False
-        else:
+        try:
+            revoke_response = requests.post(revoke_token_url, params=params)
+            revoke_response.raise_for_status()
+            logger.info("successfully Google logout: %s", revoke_response)
             return True
+        except requests.exceptions.RequestException as e:
+            logger.error("Google logout failed: %s", e)
+            return False
 
 
 def custom_csrf_failure(request, reason=""):
@@ -622,7 +623,8 @@ class CustomerProfilePageView(PermissionRequiredMixin, TemplateView):
     def display_customer_user_type_permissions(self, request):
         social_id = request.session.get("social_id")
 
-        if "user_id" in request.session:
+        # Check if user is not logged in via google account
+        if "user_id" in request.session and not "social_id" in request.session:
             user = self.request.user
             user_permissions = user.get_all_permissions()
             clean_permissions = {
@@ -660,10 +662,14 @@ class CustomerProfilePageView(PermissionRequiredMixin, TemplateView):
                 return {}
 
     def get(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return self.redirect_to_login(request)
+        if request.user.is_authenticated:
+            logger.info(
+                "check if user is authenticated %s", request.user.is_authenticated
+            )
+            return super().get(request, *args, **kwargs)
 
-        return super().get(request, *args, **kwargs)
+        else:
+            return self.redirect_to_login(request)
 
     def post(self, request):
         if not request.user.is_authenticated:
@@ -810,7 +816,7 @@ class SellerProfilePageView(PermissionRequiredMixin, TemplateView):
     def display_seller_user_type_permissions(self, request):
         social_id = request.session.get("social_id")
 
-        if "user_id" in request.session:
+        if "user_id" in request.session and not "social_id" in request.session:
             user = self.request.user
             user_permissions = user.get_all_permissions()
             clean_permissions = {
@@ -993,7 +999,7 @@ class CSRProfilePageView(PermissionRequiredMixin, TemplateView):
     def display_csr_user_type_permissions(self, request):
         social_id = request.session.get("social_id")
 
-        if "user_id" in request.session:
+        if "user_id" in request.session and not "social_id" in request.session:
             user = self.request.user
             user_permissions = user.get_all_permissions()
             clean_permissions = {
@@ -1178,7 +1184,7 @@ class ManagerProfilePageView(PermissionRequiredMixin, TemplateView):
     def display_manager_user_type_permissions(self, request):
         social_id = request.session.get("social_id")
 
-        if "user_id" in request.session:
+        if "user_id" in request.session and not "social_id" in request.session:
             user = self.request.user
             user_permissions = user.get_all_permissions()
             clean_permissions = {
@@ -1356,7 +1362,7 @@ class AdminProfilePageView(LoginRequiredMixin, PermissionRequiredMixin, Template
     def display_manager_user_type_permissions(self, request):
         social_id = request.session.get("social_id")
 
-        if "user_id" in request.session:
+        if "user_id" in request.session and not "social_id" in request.session:
             user = self.request.user
             user_permissions = user.get_all_permissions()
             clean_permissions = {

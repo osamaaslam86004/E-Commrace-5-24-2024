@@ -8,6 +8,10 @@ from Homepage.models import CustomUser, UserProfile
 from cart.models import Cart, CartItem
 from django.contrib import messages
 from checkout.models import Payment, Refund
+from cart.cart_items import update_cart_items
+from django.shortcuts import redirect
+from django.contrib.auth import logout, login
+
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -18,11 +22,19 @@ class CheckOutView(View):
     def get_user_from_cookie(self):
         user_id = self.request.session["user_id"]
         user = CustomUser.objects.get(id=user_id)
+        print(f"Get user_from_cookie, Current user for checkout : {user}")
         return user
 
     def get_cart_for_user(self):
-        user = self.get_user_from_cookie()
-        cart = Cart.objects.get(user=user)
+
+        cart = (
+            Cart.objects.filter(user=self.request.user)
+            .exclude(cart_payment__isnull=False)
+            .select_related("cart_payment", "user")
+        )
+
+        cart = cart.first()
+        print(f"Inside get_cart_for_user(), Cart for current user: {cart}")
         return cart
 
     def get_userprofile_for_user(self):
@@ -32,95 +44,103 @@ class CheckOutView(View):
         shipping_address = UserProfile.objects.get(user__id=user_id).shipping_address
         return phone, full_name, shipping_address
 
-    def cart_total(self):
-        try:
-            user = self.get_user_from_cookie()
-            cart = Cart.objects.get(user=user)
-            return cart.total
-        except Exception as e:
-            pass
-
     def get(self, request, *kwargs):
         context = {"stripe_publication_key": settings.PUBLISHABLE_KEY}
         return render(request, self.template_name, context)
 
     def post(self, request):
-        if request.method == "POST":
-            stripe_token = request.POST.get("stripeToken")
-            [phone, name, shipping_address] = self.get_userprofile_for_user()
+        try:
+            print(f"checking request method : {request.method}")
+            if request.method == "POST":
+                stripe_token = request.POST.get("stripeToken")
+                [phone, name, shipping_address] = self.get_userprofile_for_user()
+                cart = self.get_cart_for_user()
 
-            try:
-                email = self.get_user_from_cookie().email
-
-                query = f"email:'{email}' AND phone:'{phone}' AND name:'{name}'"
-
-                customers = stripe.Customer.search(query=query)
-                stripe_customer = None
-                # the stripe.CustomerList class internally parses the JSON response received from
-                # the Stripe API and provides an interface to work with the data as if it
-                # were a Python object.
                 try:
-                    if "data" in customers and customers["data"]:
-                        for customer in customers["data"]:
-                            if (
-                                customer["email"] == email
-                                and customer["phone"] == phone
-                                and customer["name"] == name
-                                and "user_id" in customer["metadata"]
-                                and "cart_id" in customer["metadata"]
-                                and customer["metadata"]["user_id"]
-                                == str(self.request.session["user_id"])
-                                and customer["metadata"]["cart_id"]
-                                == str(self.get_cart_for_user().id)
-                            ):
-                                stripe_customer = customer
-                                break
-                    else:
-                        try:
-                            stripe_customer = stripe.Customer.create(
-                                source=stripe_token,
-                                phone=phone,
-                                email=email,
-                                name=name,
-                                metadata={
-                                    "user_id": self.request.session["user_id"],
-                                    "cart_id": self.get_cart_for_user().id,
-                                },
-                            )
-                        except Exception as e:
-                            return JsonResponse({"error": str(e)})
+                    email = self.get_user_from_cookie().email
 
+                    query = f"email:'{email}' AND phone:'{phone}' AND name:'{name}'"
+
+                    customers = stripe.Customer.search(query=query)
+                    stripe_customer = None
+                    # the stripe.CustomerList class internally parses the JSON response received from
+                    # the Stripe API and provides an interface to work with the data as if it
+                    # were a Python object.
                     try:
-                        if stripe_customer and "id" in stripe_customer:
-                            charge = stripe.Charge.create(
-                                customer=stripe_customer.get("id"),
-                                amount=int(self.cart_total()),
-                                currency="usd",
-                                description="Example Charge",
-                                metadata={
-                                    "user_id": self.request.session["user_id"],
-                                    "cart_id": self.get_cart_for_user().id,
-                                },
-                            )
-                            Payment.objects.create(
-                                user=self.get_user_from_cookie(),
-                                cart=self.get_cart_for_user(),
-                                stripe_charge_id=charge["id"],
-                                stripe_customer_id=stripe_customer["id"],
-                            )
-                            messages.success(
-                                self.request, "You have successfully payed for items"
-                            )
-                            return redirect("/")
+                        if "data" in customers and customers["data"]:
+                            for customer in customers["data"]:
+                                if (
+                                    customer["email"] == email
+                                    and customer["phone"] == phone
+                                    and customer["name"] == name
+                                    and "user_id" in customer["metadata"]
+                                    and "cart_id" in customer["metadata"]
+                                    and customer["metadata"]["user_id"]
+                                    == str(self.request.session["user_id"])
+                                    and customer["metadata"]["cart_id"] == str(cart.id)
+                                ):
+                                    stripe_customer = customer
+                                    break
+                        else:
+                            try:
+                                stripe_customer = stripe.Customer.create(
+                                    source=stripe_token,
+                                    phone=phone,
+                                    email=email,
+                                    name=name,
+                                    metadata={
+                                        "user_id": self.request.session["user_id"],
+                                        "cart_id": cart.id,
+                                    },
+                                )
+                                print(f"Stripe customer created: {stripe_customer}")
+                            except Exception as e:
+                                return JsonResponse({"error": str(e)})
+
+                        try:
+                            print(f"cart total in charge.create : {cart.total}")
+                            if stripe_customer and "id" in stripe_customer:
+                                charge = stripe.Charge.create(
+                                    customer=stripe_customer.get("id"),
+                                    amount=int(cart.total * 100),
+                                    currency="usd",
+                                    description="Example Charge",
+                                    metadata={
+                                        "user_id": self.request.session["user_id"],
+                                        "cart_id": cart.id,
+                                    },
+                                )
+                                payment = Payment.objects.create(
+                                    user=self.get_user_from_cookie(),
+                                    cart=cart,
+                                    stripe_charge_id=charge["id"],
+                                    stripe_customer_id=stripe_customer["id"],
+                                    payment_status="PENDING",
+                                )
+                                messages.success(
+                                    self.request,
+                                    "You have successfully payed for items",
+                                )
+
+                                if update_cart_items(request, payment):
+                                    pass
+                                else:
+                                    print("deleting cart object after payment ")
+                                    Cart.objects.get(id=cart.id).delete()
+
+                                return redirect("/")
+                        except Exception as e:
+                            return JsonResponse({f"Error": str(e)})
                     except Exception as e:
                         return JsonResponse({f"Error": str(e)})
+
                 except Exception as e:
                     return JsonResponse({f"Error": str(e)})
-            except Exception as e:
-                return JsonResponse({f"Error": str(e)})
-        return JsonResponse(
-            {"Error": "Invalid request method"}, status=HttpResponse.status_code
-        )
+
+            return JsonResponse({"Error": "Invalid request method"}, status=400)
+
+        except Exception as e:
+            return JsonResponse({f"Error": str(e)})
 
 
 @csrf_exempt
@@ -255,10 +275,13 @@ class Charge_Refund(View):
                 messages.success(
                     request, f"Refund successful. Refund ID: {refund['id']}"
                 )
-                return JsonResponse({"success": True, "refund": refund})
+                # return JsonResponse({"success": True, "refund": refund})
+                return render(self.request, "view_orders.html")
+
             except stripe.error.StripeError as e:
                 messages.error(request, f"Error refunding charge: {str(e)}")
                 return JsonResponse({"success": False, "error": str(e)})
+
         except stripe.error.StripeError as e:
             messages.error(request, f"Error retrieving charge from Stripe: {str(e)}")
             return JsonResponse({"success": False, "error": str(e)})
