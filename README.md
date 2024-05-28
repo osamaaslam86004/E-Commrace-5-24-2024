@@ -145,9 +145,11 @@ if cookie is present in the browser. Otherwise, cart items are retrieved from da
 
 # How to run this web app:
 
- 1. python3.11 -m pip install -r requirements.txt
- 2. python3.11 manage.py makemigrations
- 3. python3.11 manage.py migrate 
- 4. python3.11 manage.py product_category 
- 5. python3.11 manage.py computersubcategory 
- 6. python3.11 manage.py Special_Features 
+python version : 3.11
+
+ 1. python -m pip install -r requirements.txt
+ 2. python manage.py makemigrations
+ 3. python manage.py migrate 
+ 4. python manage.py product_category 
+ 5. python manage.py computersubcategory 
+ 6. python manage.py Special_Features 
