@@ -612,13 +612,27 @@ class RetrieveCVDataToUpdate(View):
                 except Exception as e:
                     return JsonResponse({"personal_info_dic_dump__error": str(e)})
 
-                response = requests.patch(url, headers=headers, data=json_data)
-                if response.status_code == 200:
-                    messages.success(request, "Cv updated successfully!")
-                    return HttpResponsePermanentRedirect("/")
-                    # return JsonResponse({"message": json_data})
-                else:
-                    return JsonResponse({"personal_info_json_status": json_data})
+                try:
+                    response = requests.patch(url, headers=headers, data=json_data)
+                    if response.status_code == 200:
+                        if response.json()["status"] == "UPDATED":
+                            messages.success(request, "Cv updated successfully!")
+                            PersonalInfo.objects.get(
+                                api_id_of_cv=response.json()["id"],
+                                api_user_id_for_cv=response.json()["user_id"],
+                            ).status = "UPDATED"
+                        else:
+                            messages.info(request, "Fail to updated Cv, Try Again!")
+                            PersonalInfo.objects.get(
+                                api_id_of_cv=response.json()["id"],
+                                api_user_id_for_cv=response.json()["user_id"],
+                            ).status = "FAILED"
+
+                except requests.RequestException as e:
+                    messages.info(request, "Fail to Update your CV, Try Again!")
+
+                return HttpResponsePermanentRedirect("/")
+
             else:
 
                 return redirect(
@@ -724,13 +738,18 @@ class WebHookEvent(View):
                     personal_info.save()
 
                     print(f"You have updated your CV successfully")
-                    return JsonResponse(
-                        {"cv_updated_status": "Cv status updated on client-side"},
-                        status=200,
-                    )
+                    # return JsonResponse(
+                    #     {"cv_updated_status": "Cv status updated on client-side"},
+                    #     status=200,
+                    # )
+                    messages.success(request, "Updated your CV, Success!")
 
                 except Exception as e:
-                    return JsonResponse({"error": str(e)}, status=500)
+                    # return JsonResponse({"error": str(e)}, status=500)
+                    print(f"execution error in webhook event: cv_updated : {e}")
+                    messages.info(request, "fail to Update your CV on [client-side]!")
+
+                return HttpResponsePermanentRedirect("/")
 
             elif data["event"] == "cv_deleted":
                 try:
@@ -764,15 +783,25 @@ class WebHookEvent(View):
                     personal_info.save()
 
                     print(f"Your CV updation has failed")
-                    return JsonResponse(
-                        {
-                            "cv_update_failed_status": "CV status for update failed on client-side "
-                        },
-                        status=200,
+                    # return JsonResponse(
+                    #     {
+                    #         "cv_update_failed_status": "CV status for update failed on client-side "
+                    #     },
+                    #     status=200,
+                    # )
+                    print(f"execution error in webhook event: cv_updated : {e}")
+                    messages.info(
+                        request, "fail to Update your CV on backend-side, Try Again!"
                     )
 
                 except Exception as e:
-                    return JsonResponse({"error": str(e)}, status=500)
+                    # return JsonResponse({"error": str(e)}, status=500)
+                    print(f"execution error in webhook event: cv_updated : {e}")
+                    messages.info(
+                        request, "fail to Update status [client-side] of your CV!"
+                    )
+
+                return HttpResponsePermanentRedirect("/")
 
             else:
                 return JsonResponse(
