@@ -206,7 +206,7 @@ class ListOfCVForUser(TemplateView):
             else:
                 return super().get(request, **kwargs)
 
-            url = f"https://osamaaslam.pythonanywhere.com/api/get-personal-info-data-for-user/?user_id={api_user_id}"
+            url = f"https://osamaaslam.pythonanywhere.com/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
 
             headers = {
                 "Content-Type": "application/json",
@@ -252,7 +252,7 @@ class RetrieveCVDataToUpdate(View):
         if access_token:
 
             personal_info_id = kwargs["personal_info_id"]
-            url = f"https://osamaaslam.pythonanywhere.com/api/api/get-personal-info-data/{personal_info_id}/"
+            url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
 
             headers = {
                 "Content-Type": "application/json",
@@ -596,11 +596,11 @@ class RetrieveCVDataToUpdate(View):
                         return JsonResponse({"cv_to_update": str(e)}, status=404)
                 else:
                     return JsonResponse(
-                        {"access token for user id {user_id} not found in datbase"},
+                        {f"access token for user id {user_id} not found in datbase"},
                         status=500,
                     )
 
-                url = f"https://osamaaslam.pythonanywhere.com/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}"
+                url = f"https://osamaaslam.pythonanywhere.com/resume/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=False"
 
                 headers = {
                     "Content-Type": "application/json",
@@ -665,7 +665,7 @@ class DeleteCVForUser(View):
         }
 
         personal_info_id = kwargs.get("personal_info_id")
-        url = f"https://osamaaslam.pythonanywhere.com/api/api/get-personal-info-data/{personal_info_id}/"
+        url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
 
         try:
             response = requests.delete(url, headers=headers, verify=False)
@@ -738,18 +738,14 @@ class WebHookEvent(View):
                     personal_info.save()
 
                     print(f"You have updated your CV successfully")
-                    # return JsonResponse(
-                    #     {"cv_updated_status": "Cv status updated on client-side"},
-                    #     status=200,
-                    # )
-                    messages.success(request, "Updated your CV, Success!")
+                    return JsonResponse(
+                        {"cv_updated_status": "Cv status updated on client-side"},
+                        status=200,
+                    )
 
                 except Exception as e:
-                    # return JsonResponse({"error": str(e)}, status=500)
                     print(f"execution error in webhook event: cv_updated : {e}")
-                    messages.info(request, "fail to Update your CV on [client-side]!")
-
-                return HttpResponsePermanentRedirect("/")
+                    return JsonResponse({"error": str(e)}, status=500)
 
             elif data["event"] == "cv_deleted":
                 try:
@@ -782,26 +778,17 @@ class WebHookEvent(View):
                     personal_info.status = data["status"]
                     personal_info.save()
 
-                    print(f"Your CV updation has failed")
-                    # return JsonResponse(
-                    #     {
-                    #         "cv_update_failed_status": "CV status for update failed on client-side "
-                    #     },
-                    #     status=200,
-                    # )
-                    print(f"execution error in webhook event: cv_updated : {e}")
-                    messages.info(
-                        request, "fail to Update your CV on backend-side, Try Again!"
+                    print(f"Your CV updation has failed on client-side")
+                    return JsonResponse(
+                        {
+                            "cv_update_failed_status": "CV status for update failed on client-side "
+                        },
+                        status=200,
                     )
 
                 except Exception as e:
-                    # return JsonResponse({"error": str(e)}, status=500)
                     print(f"execution error in webhook event: cv_updated : {e}")
-                    messages.info(
-                        request, "fail to Update status [client-side] of your CV!"
-                    )
-
-                return HttpResponsePermanentRedirect("/")
+                    return JsonResponse({"error": str(e)}, status=500)
 
             else:
                 return JsonResponse(
