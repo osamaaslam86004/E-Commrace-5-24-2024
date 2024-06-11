@@ -178,7 +178,7 @@ class CVApiSubmitForm(View):
         except Exception as e:
             return JsonResponse({"error________________": str(e)})
         return HttpResponseRedirect(
-            f"https://osamaaslam.pythonanywhere.com/api/?user_id={api_user_id}"
+            f"https://osamaaslam.pythonanywhere.com/resume/?user_id={api_user_id}"
         )
 
 
