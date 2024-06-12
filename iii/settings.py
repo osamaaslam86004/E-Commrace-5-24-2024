@@ -49,12 +49,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-if (
-    DEBUG
-):  # localhost and "diverse-intense-" must be in list for password reset functionality
+DEBUG = False
+if DEBUG:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", "diverse-intense-whippet.ngrok-free.app"]
-    # ALLOWED_HOSTS = ["diverse-intense-whippet.ngrok-free.app", "localhost:8000"]
 else:
     ALLOWED_HOSTS = ["osama11111.pythonanywhere.com"]
 
