@@ -49,9 +49,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 if DEBUG:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "diverse-intense-whippet.ngrok-free.app"]
+    ALLOWED_HOSTS = [
+        "localhost",
+        "127.0.0.1",
+        "diverse-intense-whippet.ngrok-free.app",
+        "osama11111.pythonanywhere.com",
+    ]
 else:
     ALLOWED_HOSTS = ["osama11111.pythonanywhere.com"]
 
@@ -273,9 +278,20 @@ else:
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 if DEBUG:
-    CSRF_TRUSTED_ORIGINS = ["https://diverse-intense-whippet.ngrok-free.app"]
+    CSRF_TRUSTED_ORIGINS = (
+        [
+            "https://diverse-intense-whippet.ngrok-free.app",
+            "https://osama11111.pythonanywhere.com",
+        ],
+    )
+
 else:
-    CSRF_TRUSTED_ORIGINS = ["https://osama11111.pythonanywhere.com"]
+    CSRF_TRUSTED_ORIGINS = (
+        [
+            "https://diverse-intense-whippet.ngrok-free.app",
+            "https://osama11111.pythonanywhere.com",
+        ],
+    )
 
 
 ####################---Allauth settings for social account login ----######################
