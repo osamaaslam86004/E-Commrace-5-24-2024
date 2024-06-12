@@ -1,8 +1,9 @@
-from django.http import HttpResponseRedirect, response, JsonResponse, HttpResponse
-import requests, json
-from cv_api.models import PersonalInfo
+from django.http import JsonResponse
+from django.conf import settings
+import requests
+import json
 from Homepage.models import CustomUser
-from cv_api.models import PersonalInfo
+
 
 # Question: difference between class method and instance method in python
 
@@ -20,7 +21,12 @@ class TokenUtils:
     @staticmethod
     def register_user(user):
         # Define the URL of the API endpoint for user registration
-        api_url = "https://osamaaslam.pythonanywhere.com/api/auth/crud-user/"
+        if settings.DEBUG:
+            api_url = (
+                "https://diverse-intense-whippet.ngrok-free.app/api/auth/crud-user/"
+            )
+        else:
+            api_url = "https://osamaaslam.pythonanywhere.com/api/auth/crud-user/"
 
         headers = {"Content-Type": "application/json"}
 
@@ -67,9 +73,10 @@ class TokenUtils:
         else:
             return JsonResponse({"error_get_user": "user is None"})
 
-        api_url = (
-            "https://osamaaslam.pythonanywhere.com/api/auth/get-api-user-id-for-user/"
-        )
+        if settings.DEBUG:
+            api_url = "https://diverse-intense-whippet.ngrok-free.app/api/auth/get-api-user-id-for-user/"
+        else:
+            api_url = "https://osamaaslam.pythonanywhere.com/api/auth/get-api-user-id-for-user/"
 
         headers = {"Content-Type": "application/json"}
 
@@ -113,7 +120,11 @@ class TokenUtils:
     @staticmethod  # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).
     def get_tokens_for_user(user_id):
 
-        api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/"
+        if settings.DEBUG:
+            api_url = "https://diverse-intense-whippet.ngrok-free.app/api/auth/token/"
+        else:
+            api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/"
+
         headers = {"Content-Type": "application/json"}
 
         try:
@@ -161,7 +172,13 @@ class TokenUtils:
         # Define the URL of the API endpoint for acquiring fresh access token using refresh token
 
         # Caution :RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set
-        api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/refresh/"
+        if settings.DEBUG:
+            api_url = (
+                "https://diverse-intense-whippet.ngrok-free.app/api/auth/token/refresh/"
+            )
+        else:
+            api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/refresh/"
+
         headers = {"Content-Type": "application/json"}
 
         user_data = {
@@ -192,7 +209,13 @@ class TokenUtils:
     def verify_access_token_for_user(access_token):
 
         # Caution :RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set
-        api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/verify/"
+        if settings.DEBUG:
+            api_url = (
+                "https://diverse-intense-whippet.ngrok-free.app/api/auth/token/verify/"
+            )
+        else:
+            api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/verify/"
+
         headers = {"Content-Type": "application/json"}
 
         user_data = {

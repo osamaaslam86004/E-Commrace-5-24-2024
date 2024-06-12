@@ -29,6 +29,7 @@ from Homepage.models import CustomUser
 from cv_api.create_read_update_delete_user import TokenUtils
 from django.contrib import messages
 from django.contrib import messages
+from django.conf import settings
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -129,9 +130,9 @@ class CVApiPostRequest(TemplateView):
             return redirect("Homepage:login")
         return super().get(request, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     return context
 
 
 class CVApiSubmitForm(View):
@@ -177,9 +178,15 @@ class CVApiSubmitForm(View):
             )
         except Exception as e:
             return JsonResponse({"error________________": str(e)})
-        return HttpResponseRedirect(
-            f"https://osamaaslam.pythonanywhere.com/resume/?user_id={api_user_id}"
-        )
+
+        if settings.DEBUG:
+            return HttpResponseRedirect(
+                f"https://diverse-intense-whippet.ngrok-free.app/resume/?user_id={api_user_id}"
+            )
+        else:
+            return HttpResponseRedirect(
+                f"https://osamaaslam.pythonanywhere.com/resume/?user_id={api_user_id}"
+            )
 
 
 class ListOfCVForUser(TemplateView):
@@ -206,7 +213,10 @@ class ListOfCVForUser(TemplateView):
             else:
                 return super().get(request, **kwargs)
 
-            url = f"https://osamaaslam.pythonanywhere.com/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
+            if settings.DEBUG:
+                url = f"https://diverse-intense-whippet.ngrok-free.app/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
+            else:
+                url = f"https://osamaaslam.pythonanywhere.com/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
 
             headers = {
                 "Content-Type": "application/json",
@@ -252,7 +262,11 @@ class RetrieveCVDataToUpdate(View):
         if access_token:
 
             personal_info_id = kwargs["personal_info_id"]
-            url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
+
+            if settings.DEBUG:
+                url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
+            else:
+                url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
 
             headers = {
                 "Content-Type": "application/json",
@@ -599,8 +613,10 @@ class RetrieveCVDataToUpdate(View):
                         {f"access token for user id {user_id} not found in datbase"},
                         status=500,
                     )
-
-                url = f"https://osamaaslam.pythonanywhere.com/resume/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=False"
+                if settings.DEBUG:
+                    url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=False"
+                else:
+                    url = f"https://osamaaslam.pythonanywhere.com/resume/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=False"
 
                 headers = {
                     "Content-Type": "application/json",
@@ -665,11 +681,15 @@ class DeleteCVForUser(View):
         }
 
         personal_info_id = kwargs.get("personal_info_id")
-        url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
+
+        if settings.DEBUG:
+            url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
+        else:
+            url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
 
         try:
             response = requests.delete(url, headers=headers, verify=False)
-            response.raise_for_status()
+            # response.raise_for_status()
 
             if response.status_code == 200:
                 print(f"deleted CV-----: {response.json()} and {response.status_code}")
@@ -684,7 +704,11 @@ class DeleteCVForUser(View):
             return HttpResponsePermanentRedirect("/")
 
         except requests.RequestException as e:
-            messages.error(self.request, f"Error fetching CV data: {str(e)}")
+            messages.error(
+                self.request,
+                f"Delete Webhook Fails, But CV status updated on Client-side also: {str(e)}",
+            )
+
             return HttpResponsePermanentRedirect("/")
 
 
@@ -706,9 +730,10 @@ class WebHookEvent(View):
                         api_id_of_cv="9999999", api_user_id_for_cv=data["user_id"]
                     )
                     personal_info = personal_info[0]
+                print(f"PersonalInfo in wwwwwwwbhookk-------- : {personal_info}")
 
             except Exception as e:
-                print(f"________exception as e: {str(e)}")
+                print(f"exception in Delete View: {str(e)}")
                 return JsonResponse({"error": str(e)}, status=500)
 
             if data["event"] == "cv_created":
@@ -717,6 +742,9 @@ class WebHookEvent(View):
                     personal_info.status = data["status"]
                     personal_info.api_id_of_cv = data["id"]
                     personal_info.save()
+                    print(
+                        f"status updated in event cv_created------- status: {personal_info.status} : id : {personal_info.api_id_of_cv}"
+                    )
 
                     print(f"You have created your CV successfully")
                     return JsonResponse(
@@ -757,7 +785,9 @@ class WebHookEvent(View):
                         status=200,
                     )
                 except Exception as e:
-                    return JsonResponse({"error": str(e)}, status=500)
+                    return JsonResponse(
+                        {" error deleting on Client-Side": str(e)}, status=500
+                    )
 
             elif data["event"] == "cv_deletIion_failed":
                 try:
