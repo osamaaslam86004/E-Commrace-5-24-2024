@@ -603,15 +603,15 @@ class RetrieveCVDataToUpdate(View):
                 access_token = self.get_token_from_database(user_id)
                 if access_token:
                     try:
-                        cv_to_update = PersonalInfo.objects.get(
+                        cv_to_update = PersonalInfo.objects.filter(
                             user_id_for_personal_info__id=user_id,
                             api_id_of_cv=personal_info_id,
-                        )
+                        ).first()
 
                         api_user_id = cv_to_update.api_user_id_for_cv
 
                         print(
-                            f"cv to update------ {cv_to_update}  length of cv_to_update {cv_to_update  }and user id_for cv is -----: {api_user_id}"
+                            f"cv to update------ {cv_to_update}  user_id {user_id  }and user id_for cv is -----: {api_user_id}"
                         )
                     except Exception as e:
                         return JsonResponse({"cv_to_update": str(e)}, status=404)
@@ -640,16 +640,16 @@ class RetrieveCVDataToUpdate(View):
                     if response.status_code == 200:
                         if response.json()["status"] == "UPDATED":
                             messages.success(request, "Cv updated successfully!")
-                            PersonalInfo.objects.get(
+                            PersonalInfo.objects.filter(
                                 api_id_of_cv=response.json()["id"],
                                 api_user_id_for_cv=response.json()["user_id"],
-                            ).status = "UPDATED"
+                            ).first().status = "UPDATED"
                         else:
                             messages.info(request, "Fail to updated Cv, Try Again!")
-                            PersonalInfo.objects.get(
+                            PersonalInfo.objects.filter(
                                 api_id_of_cv=response.json()["id"],
                                 api_user_id_for_cv=response.json()["user_id"],
-                            ).status = "FAILED"
+                            ).first().status = "FAILED"
 
                 except requests.RequestException as e:
                     messages.info(request, "Fail to Update your CV, Try Again!")
@@ -737,10 +737,9 @@ class WebHookEvent(View):
                         api_id_of_cv="9999999", api_user_id_for_cv=data["user_id"]
                     )
                     personal_info = personal_info[0]
-                print(f"PersonalInfo in wwwwwwwbhookk-------- : {personal_info}")
 
             except Exception as e:
-                print(f"exception in Delete View: {str(e)}")
+                print(f"exception in webhook View: {str(e)}")
                 return JsonResponse({"error": str(e)}, status=500)
 
             if data["event"] == "cv_created":

@@ -54,7 +54,6 @@ if DEBUG:
     ALLOWED_HOSTS = [
         "localhost",
         "127.0.0.1",
-        "osama11111.pythonanywhere.com",
         "diverse-intense-whippet.ngrok-free.app",
     ]
 else:
