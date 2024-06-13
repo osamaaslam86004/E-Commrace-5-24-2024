@@ -132,16 +132,21 @@ if cookie is present in the browser. Otherwise, cart items are retrieved from da
 
 #### Restriction: 
 1. User can add any number of items in cart, unless cookie size is less than 4Kb
-2. Only one cart is linked to one user
+2. Many cart are linked to one user
 
 
 
 
 ## Payment Handling:
 1. Stripe API is used to handle the payment.
-2. User can get a refund for a product
+2. User can get a Partial or Full refund for a product
+3. User can view the Refund status in their profiles
 
 
+# Integration With Resume API
+
+1. One User can Create, Update, Delete and Read many Resume / CV
+Reference : [GitHub Repo](https://github.com/osamaaslam86004/reumse_api-5-24-2024.git)
 
 # How to run this web app:
 
