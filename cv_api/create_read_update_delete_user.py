@@ -21,7 +21,7 @@ class TokenUtils:
     @staticmethod
     def register_user(user):
         # Define the URL of the API endpoint for user registration
-        if settings.DEBUG:
+        if not settings.DEBUG:
             api_url = (
                 "https://diverse-intense-whippet.ngrok-free.app/api/auth/crud-user/"
             )
@@ -73,7 +73,7 @@ class TokenUtils:
         else:
             return JsonResponse({"error_get_user": "user is None"})
 
-        if settings.DEBUG:
+        if not settings.DEBUG:
             api_url = "https://diverse-intense-whippet.ngrok-free.app/api/auth/get-api-user-id-for-user/"
         else:
             api_url = "https://osamaaslam.pythonanywhere.com/api/auth/get-api-user-id-for-user/"
@@ -120,7 +120,7 @@ class TokenUtils:
     @staticmethod  # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).
     def get_tokens_for_user(user_id):
 
-        if settings.DEBUG:
+        if not settings.DEBUG:
             api_url = "https://diverse-intense-whippet.ngrok-free.app/api/auth/token/"
         else:
             api_url = "https://osamaaslam.pythonanywhere.com/api/auth/token/"
@@ -172,7 +172,7 @@ class TokenUtils:
         # Define the URL of the API endpoint for acquiring fresh access token using refresh token
 
         # Caution :RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set
-        if settings.DEBUG:
+        if not settings.DEBUG:
             api_url = (
                 "https://diverse-intense-whippet.ngrok-free.app/api/auth/token/refresh/"
             )
@@ -209,7 +209,7 @@ class TokenUtils:
     def verify_access_token_for_user(access_token):
 
         # Caution :RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set
-        if settings.DEBUG:
+        if  not settings.DEBUG:
             api_url = (
                 "https://diverse-intense-whippet.ngrok-free.app/api/auth/token/verify/"
             )

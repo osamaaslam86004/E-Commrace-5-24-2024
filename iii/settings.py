@@ -54,8 +54,8 @@ if DEBUG:
     ALLOWED_HOSTS = [
         "localhost",
         "127.0.0.1",
-        "diverse-intense-whippet.ngrok-free.app",
         "osama11111.pythonanywhere.com",
+        "diverse-intense-whippet.ngrok-free.app",
     ]
 else:
     ALLOWED_HOSTS = ["osama11111.pythonanywhere.com"]
@@ -261,8 +261,6 @@ AUTHENTICATION_BACKENDS = [
 GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
 
-GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID")
-GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET")
 
 if not DEBUG:
     GOOGLE_OAUTH_REDIRECT_URI = (

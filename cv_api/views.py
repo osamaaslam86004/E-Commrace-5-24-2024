@@ -130,10 +130,6 @@ class CVApiPostRequest(TemplateView):
             return redirect("Homepage:login")
         return super().get(request, **kwargs)
 
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     return context
-
 
 class CVApiSubmitForm(View):
 
@@ -179,7 +175,7 @@ class CVApiSubmitForm(View):
         except Exception as e:
             return JsonResponse({"error________________": str(e)})
 
-        if settings.DEBUG:
+        if not settings.DEBUG:
             return HttpResponseRedirect(
                 f"https://diverse-intense-whippet.ngrok-free.app/resume/?user_id={api_user_id}"
             )
@@ -213,7 +209,7 @@ class ListOfCVForUser(TemplateView):
             else:
                 return super().get(request, **kwargs)
 
-            if settings.DEBUG:
+            if not settings.DEBUG:
                 url = f"https://diverse-intense-whippet.ngrok-free.app/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
             else:
                 url = f"https://osamaaslam.pythonanywhere.com/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
@@ -263,7 +259,7 @@ class RetrieveCVDataToUpdate(View):
 
             personal_info_id = kwargs["personal_info_id"]
 
-            if settings.DEBUG:
+            if not settings.DEBUG:
                 url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
             else:
                 url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
@@ -462,6 +458,12 @@ class RetrieveCVDataToUpdate(View):
             personal_info = cookie_data["personal_info"]
             publication_data = cookie_data["publications"]
 
+            import logging
+
+            logger = logging.getLogger(__name__)
+
+            logger.info(f"publication data ------ : {publication_data}")
+
             # since i have not stored the data in database, we parse the instances
             # from cookie provided as initial values
             # Remember! initial must be a dictionary
@@ -504,6 +506,9 @@ class RetrieveCVDataToUpdate(View):
                     self.request.POST, initial=publication
                 )
                 publication_form_list.append(publication_form)
+                logger.info(f"publication form ------ : {publication_form}")
+
+            logger.info(f"publication form list ------ : {publication_form_list}")
 
             if (
                 form.is_valid()
@@ -577,6 +582,8 @@ class RetrieveCVDataToUpdate(View):
                     publication_dic = publication_form.cleaned_data
                     publication_dic_list.append(publication_dic)
 
+                logger.info(f"publication dictionary ------ : {publication_dic_list}")
+
                 # making the dictionary manually
                 personal_info = personalinfo_dic
                 personal_info["overview"] = overview_dic
@@ -613,10 +620,10 @@ class RetrieveCVDataToUpdate(View):
                         {f"access token for user id {user_id} not found in datbase"},
                         status=500,
                     )
-                if settings.DEBUG:
-                    url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=False"
+                if not settings.DEBUG:
+                    url = f"https://diverse-intense-whippet.ngrok-free.app/resume/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=True"
                 else:
-                    url = f"https://osamaaslam.pythonanywhere.com/resume/api/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=False"
+                    url = f"https://osamaaslam.pythonanywhere.com/resume/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=True"
 
                 headers = {
                     "Content-Type": "application/json",
@@ -682,14 +689,14 @@ class DeleteCVForUser(View):
 
         personal_info_id = kwargs.get("personal_info_id")
 
-        if settings.DEBUG:
+        if not settings.DEBUG:
             url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
         else:
             url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
 
         try:
             response = requests.delete(url, headers=headers, verify=False)
-            # response.raise_for_status()
+            response.raise_for_status()
 
             if response.status_code == 200:
                 print(f"deleted CV-----: {response.json()} and {response.status_code}")
@@ -704,7 +711,7 @@ class DeleteCVForUser(View):
             return HttpResponsePermanentRedirect("/")
 
         except requests.RequestException as e:
-            messages.error(
+            messages.info(
                 self.request,
                 f"Delete Webhook Fails, But CV status updated on Client-side also: {str(e)}",
             )
