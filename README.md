@@ -148,8 +148,11 @@ if cookie is present in the browser. Otherwise, cart items are retrieved from da
 python version : 3.11
 
  1. python -m pip install -r requirements.txt
- 2. python manage.py makemigrations
- 3. python manage.py migrate 
- 4. python manage.py product_category 
- 5. python manage.py computersubcategory 
- 6. python manage.py Special_Features 
+ 2. python manage.py flush
+ 3. python manage.py reset_db
+ 4. python manage.py clean_pyc
+ 5. python manage.py makemigrations
+ 6. python manage.py migrate 
+ 7. python manage.py product_category 
+ 8. python manage.py computersubcategory 
+ 9. python manage.py Special_Features 
