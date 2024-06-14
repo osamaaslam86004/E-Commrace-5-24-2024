@@ -638,28 +638,39 @@ class RetrieveCVDataToUpdate(View):
                 try:
                     response = requests.patch(url, headers=headers, data=json_data)
                     if response.status_code == 200:
-                        if response.json()["status"] == "UPDATED":
-                            messages.success(request, "Cv updated successfully!")
-                            instance = (
-                                PersonalInfo.objects.filter(
-                                    api_id_of_cv=response.json()["id"],
-                                    api_user_id_for_cv=response.json()["user_id"],
-                                )
-                                .first()
-                                .status
-                            ) = "UPDATED"
-                        else:
-                            messages.info(request, "Fail to updated Cv, Try Again!")
-                            instance = (
-                                PersonalInfo.objects.filter(
-                                    api_id_of_cv=response.json()["id"],
-                                    api_user_id_for_cv=response.json()["user_id"],
-                                )
-                                .first()
-                                .status
-                            ) = "FAILED"
+                        # Get all PersonalInfo instances for current user
+                        instances_of_current_user = PersonalInfo.objects.select_related(
+                            "user_id_for_personal_info"
+                        )
 
-                        instance.save()
+                        if response.json()["status"] == "UPDATED":
+                            # get the required instance
+                            required_instance = instances_of_current_user.filter(
+                                api_id_of_cv=response.json()["id"],
+                                api_user_id_for_cv=response.json()["user_id"],
+                            ).first()
+                            # Prevent Double Update on same instance
+                            if required_instance.status == "UPDATED":
+                                pass
+                            else:
+                                print(
+                                    "--------S T A T U S    U P D A T E D     M A N U A L L  Y------"
+                                )
+                                required_instance.status = "UPDATED"
+                            messages.success(request, "Cv updated successfully!")
+                        else:
+                            print(
+                                "--------F A I L E D   S T A T U S    U P D A T E D     M A N U A L L  Y------"
+                            )
+                            messages.info(request, "Fail to updated Cv, Try Again!")
+                            # get the required instance
+                            required_instance = instances_of_current_user.filter(
+                                api_id_of_cv=response.json()["id"],
+                                api_user_id_for_cv=response.json()["user_id"],
+                            ).first()
+                            required_instance.status = "FAILED"
+
+                        required_instance.save()
 
                 except requests.RequestException as e:
                     messages.info(request, "Fail to Update your CV, Try Again!")
@@ -709,22 +720,32 @@ class DeleteCVForUser(View):
             response.raise_for_status()
 
             if response.status_code == 200:
+                # Get all PersonalInfo instances for current user
+                instances_of_current_user = PersonalInfo.objects.select_related(
+                    "user_id_for_personal_info"
+                )
                 if response.json()["status"] == "DELETED":
-                    messages.success(request, "Cv DELETED successfully!")
-                    instance = PersonalInfo.objects.filter(
+                    # Get the required instance
+                    required_instance = instances_of_current_user.filter(
                         api_id_of_cv=response.json()["id"],
                         api_user_id_for_cv=response.json()["user_id"],
                     ).first()
-                    if instance:
-                        instance.delete()
 
+                    # if exist, because Webhhook Fails!
+                    if required_instance:
+                        print("-S T A T U S    D E L E T E D    M A N U A L L  Y-")
+                        required_instance.delete()
+                        messages.success(request, "Cv DELETED successfully!")
                 else:
                     messages.info(request, "Fail to Delete Cv, Try Again!")
-                    PersonalInfo.objects.filter(
+                    # get the required instance
+                    required_instance = instances_of_current_user.filter(
                         api_id_of_cv=response.json()["id"],
                         api_user_id_for_cv=response.json()["user_id"],
-                    ).first().status = "FAILED"
-                    instance.save()
+                    ).first()
+                    required_instance.status = "FAILED"
+
+                    required_instance.save()
 
             return HttpResponsePermanentRedirect("/")
 
@@ -786,8 +807,9 @@ class WebHookEvent(View):
                 try:
 
                     personal_info.status = data["status"]
-                    print(f"status________________{personal_info.status}")
+                    print(f"status------------: {personal_info.status}")
                     personal_info.save()
+                    print("------------- U    P   D   A   T    E   D ---------")
 
                     print(f"You have updated your CV successfully")
                     return JsonResponse(
