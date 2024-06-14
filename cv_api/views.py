@@ -175,7 +175,7 @@ class CVApiSubmitForm(View):
         except Exception as e:
             return JsonResponse({"error________________": str(e)})
 
-        if not settings.DEBUG:
+        if settings.DEBUG:
             return HttpResponseRedirect(
                 f"https://diverse-intense-whippet.ngrok-free.app/resume/?user_id={api_user_id}"
             )
@@ -209,7 +209,7 @@ class ListOfCVForUser(TemplateView):
             else:
                 return super().get(request, **kwargs)
 
-            if not settings.DEBUG:
+            if settings.DEBUG:
                 url = f"https://diverse-intense-whippet.ngrok-free.app/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
             else:
                 url = f"https://osamaaslam.pythonanywhere.com/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
@@ -259,7 +259,7 @@ class RetrieveCVDataToUpdate(View):
 
             personal_info_id = kwargs["personal_info_id"]
 
-            if not settings.DEBUG:
+            if settings.DEBUG:
                 url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
             else:
                 url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
@@ -620,7 +620,7 @@ class RetrieveCVDataToUpdate(View):
                         {f"access token for user id {user_id} not found in datbase"},
                         status=500,
                     )
-                if not settings.DEBUG:
+                if settings.DEBUG:
                     url = f"https://diverse-intense-whippet.ngrok-free.app/resume/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=True"
                 else:
                     url = f"https://osamaaslam.pythonanywhere.com/resume/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=True"
@@ -699,7 +699,7 @@ class DeleteCVForUser(View):
 
         personal_info_id = kwargs.get("personal_info_id")
 
-        if not settings.DEBUG:
+        if settings.DEBUG:
             url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
         else:
             url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
