@@ -175,7 +175,7 @@ class CVApiSubmitForm(View):
         except Exception as e:
             return JsonResponse({"error________________": str(e)})
 
-        if settings.DEBUG:
+        if not settings.DEBUG:
             return HttpResponseRedirect(
                 f"https://diverse-intense-whippet.ngrok-free.app/resume/?user_id={api_user_id}"
             )
@@ -209,7 +209,7 @@ class ListOfCVForUser(TemplateView):
             else:
                 return super().get(request, **kwargs)
 
-            if settings.DEBUG:
+            if not settings.DEBUG:
                 url = f"https://diverse-intense-whippet.ngrok-free.app/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
             else:
                 url = f"https://osamaaslam.pythonanywhere.com/resume/get-personal-info-data-for-user/?user_id={api_user_id}"
@@ -259,7 +259,7 @@ class RetrieveCVDataToUpdate(View):
 
             personal_info_id = kwargs["personal_info_id"]
 
-            if settings.DEBUG:
+            if not settings.DEBUG:
                 url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
             else:
                 url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
@@ -620,7 +620,7 @@ class RetrieveCVDataToUpdate(View):
                         {f"access token for user id {user_id} not found in datbase"},
                         status=500,
                     )
-                if settings.DEBUG:
+                if not settings.DEBUG:
                     url = f"https://diverse-intense-whippet.ngrok-free.app/resume/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=True"
                 else:
                     url = f"https://osamaaslam.pythonanywhere.com/resume/patch-put-personal-info-data-for-user/?id={personal_info_id}&user_id={api_user_id}&partial=True"
@@ -640,16 +640,26 @@ class RetrieveCVDataToUpdate(View):
                     if response.status_code == 200:
                         if response.json()["status"] == "UPDATED":
                             messages.success(request, "Cv updated successfully!")
-                            PersonalInfo.objects.filter(
-                                api_id_of_cv=response.json()["id"],
-                                api_user_id_for_cv=response.json()["user_id"],
-                            ).first().status = "UPDATED"
+                            instance = (
+                                PersonalInfo.objects.filter(
+                                    api_id_of_cv=response.json()["id"],
+                                    api_user_id_for_cv=response.json()["user_id"],
+                                )
+                                .first()
+                                .status
+                            ) = "UPDATED"
                         else:
                             messages.info(request, "Fail to updated Cv, Try Again!")
-                            PersonalInfo.objects.filter(
-                                api_id_of_cv=response.json()["id"],
-                                api_user_id_for_cv=response.json()["user_id"],
-                            ).first().status = "FAILED"
+                            instance = (
+                                PersonalInfo.objects.filter(
+                                    api_id_of_cv=response.json()["id"],
+                                    api_user_id_for_cv=response.json()["user_id"],
+                                )
+                                .first()
+                                .status
+                            ) = "FAILED"
+
+                        instance.save()
 
                 except requests.RequestException as e:
                     messages.info(request, "Fail to Update your CV, Try Again!")
@@ -689,7 +699,7 @@ class DeleteCVForUser(View):
 
         personal_info_id = kwargs.get("personal_info_id")
 
-        if settings.DEBUG:
+        if not settings.DEBUG:
             url = f"https://diverse-intense-whippet.ngrok-free.app/resume/api/get-personal-info-data/{personal_info_id}/"
         else:
             url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
@@ -699,14 +709,22 @@ class DeleteCVForUser(View):
             response.raise_for_status()
 
             if response.status_code == 200:
-                print(f"deleted CV-----: {response.json()} and {response.status_code}")
-                messages.success(self.request, "CV is deleted successfully!")
+                if response.json()["status"] == "DELETED":
+                    messages.success(request, "Cv DELETED successfully!")
+                    instance = PersonalInfo.objects.filter(
+                        api_id_of_cv=response.json()["id"],
+                        api_user_id_for_cv=response.json()["user_id"],
+                    ).first()
+                    if instance:
+                        instance.delete()
 
-            else:
-                print(
-                    f"fail to delete CV-----: {response.json()} and {response.status_code}"
-                )
-                messages.error(self.request, "Failed to delete CV, try Again!")
+                else:
+                    messages.info(request, "Fail to Delete Cv, Try Again!")
+                    PersonalInfo.objects.filter(
+                        api_id_of_cv=response.json()["id"],
+                        api_user_id_for_cv=response.json()["user_id"],
+                    ).first().status = "FAILED"
+                    instance.save()
 
             return HttpResponsePermanentRedirect("/")
 
