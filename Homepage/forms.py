@@ -65,11 +65,16 @@ class SignUpForm(UserCreationForm):
 
 
 class CustomUserImageForm(forms.ModelForm):
-    image = forms.ImageField()
+    image = forms.ImageField(required=False)
 
     class Meta:
         model = CustomUser
         fields = ["image"]
+
+    def clean_image(self):
+        if self.cleaned_data["image"] is None:
+            return CustomUser._meta.get_field("image").get_default()
+        return self.cleaned_data["image"]
 
 
 class LogInForm(forms.Form):
@@ -126,8 +131,34 @@ class CustomPasswordResetForm(forms.Form):
         ),
     )
 
+    # def clean(self):
+    #     cleaned_data = super().clean()
+    #     new_password1 = cleaned_data.get("new_password1")
+    #     new_password2 = cleaned_data.get("new_password2")
 
-class UserProfileForm(forms.ModelForm):
+    #     if new_password1 and new_password2 and new_password1 != new_password2:
+    #         raise ValidationError({
+    #             "new_password2": "The two password fields must match.",
+    #         })
+
+
+class UserProfileForm(forms.ModelForm):  # no need to validate max_length
+    #  this model field will allow only max_character in the form
+    # if user try, then django form rendering will prevent this
+    GENDER_CHOICES = UserProfile.GENDER_CHOICES
+    gender = forms.ChoiceField(
+        choices=GENDER_CHOICES,
+        label="Gender Type",
+        widget=forms.Select(attrs={"placeholder": "Select Gender Type"}),
+    )
+
+    def clean_age(self):
+        if self.cleaned_data["age"] is None:
+            raise ValidationError("Valid age is required,")
+        if self.cleaned_data["age"] < 18 or self.cleaned_data["age"] > 130:
+            raise ValidationError("Valid age is required, Hint: 0 to 130")
+        return self.cleaned_data["age"]
+
     class Meta:
         model = UserProfile
         fields = [
@@ -140,6 +171,7 @@ class UserProfileForm(forms.ModelForm):
             "postal_code",
             "shipping_address",
         ]
+        exclude = ["user"]
         labels = {
             "full_name": "Full Name",
             "age": "Age",
@@ -148,12 +180,11 @@ class UserProfileForm(forms.ModelForm):
             "city": "City",
             "country": "Country",
             "postal_code": "Postal Code",
-            "shipping_address": "Shipping_address",
+            "shipping_address": "Shipping Address",
         }
         widgets = {
             "full_name": forms.TextInput(attrs={"placeholder": "Enter your full name"}),
             "age": forms.NumberInput(attrs={"placeholder": "Enter your age"}),
-            "gender": forms.TextInput(attrs={"placeholder": "Enter your gender"}),
             "city": forms.TextInput(attrs={"placeholder": "Enter your city name"}),
             "country": CountrySelectWidget(
                 attrs={"class": "selectpicker", "data-live-search": "true"}
@@ -161,24 +192,34 @@ class UserProfileForm(forms.ModelForm):
             "postal_code": forms.TextInput(
                 attrs={"placeholder": "Enter your postal code"}
             ),
-            "shpping_address": forms.TextInput(
-                attrs={"placeholder": "Enter your postal code"}
+            "shipping_address": forms.TextInput(
+                attrs={"placeholder": "Enter shipping address"}
             ),
             "phone_number": PhoneNumberPrefixWidget(),
         }
         help_texts = {
             "full_name": "Enter your full name as it appears on official documents.",
-            "age": "Enter your age in years (1-100).",
+            "age": "Enter your age in years (1-130).",
             "gender": "Specify your gender (e.g., Male, Female, Other).",
             "phone_number": "Provide a valid phone number for contact.",
             "city": "Enter the name of your city of residence.",
             "country": "Enter the name of your country of residence.",
             "postal_code": "54440.",
-            "shpping_address": "House No/Apartment,  Block, Town",
+            "shipping_address": "House No/Apartment,  Block, Town",
         }
 
 
 class CustomerProfileForm(forms.ModelForm):
+
+    def clean_wishlist(self):
+        wishlist = self.cleaned_data["wishlist"]
+
+        if not wishlist:
+            raise ValidationError("Valid Whislist is required,")
+        if wishlist <= 0 or wishlist >= 50:
+            raise ValueError("Valid whishlist is required, Hint: 0 to 50")
+        return wishlist
+
     class Meta:
         model = CustomerProfile
         fields = ["shipping_address", "wishlist"]
@@ -220,6 +261,14 @@ class SellerProfileForm(forms.ModelForm):
             "address": "Plaza No. 111, Ground Floor, Block B-4, Iqbal Town.",
         }
 
+    def clean_address(self):
+        address = self.cleaned_data["address"]
+        if len(address) < 10:
+            raise ValidationError(
+                "Shipping address must be at least 10 characters long."
+            )
+        return address
+
 
 class CustomerServiceProfileForm(forms.ModelForm):
     class Meta:
@@ -241,9 +290,18 @@ class CustomerServiceProfileForm(forms.ModelForm):
         }
         help_texts = {
             "department": "",
-            "bio": "Enter your age in years (1-100).",
-            "experience_years": "Specify your gender (e.g., Male, Female, Other).",
+            "bio": "Your Bio in 500 characters.",
+            "experience_years": "Your experience in years",
         }
+
+    def clean_experience_years(self):
+        experience_years = self.cleaned_data["experience_years"]
+
+        if not experience_years:
+            raise ValidationError("Experience years is required.")
+        if experience_years < 1 or experience_years > 40:
+            raise ValidationError("Experience must be 1 to 40 years.")
+        return experience_years
 
 
 class ManagerProfileForm(forms.ModelForm):
@@ -266,10 +324,19 @@ class ManagerProfileForm(forms.ModelForm):
         }
         help_texts = {
             "team": "Product Listing, Accounts, etc",
-            "reports": "Enter your report in words (1-1000).",
-            "bio": "Specify your bio (e.g., Name, Place, Other).",
-            "experience_years": "(1 - 10)",
+            "reports": "Enter your report in words (1-100).",
+            "bio": "Specify your bio (e.g., Name, Place, Other) Hint: [1 to 500 characters].",
+            "experience_years": "(1 - 40)",
         }
+
+    def clean_experience_years(self):
+        experience_years = self.cleaned_data["experience_years"]
+
+        if not experience_years:
+            raise ValidationError("Experience years is required.")
+        if experience_years < 1 or experience_years > 40:
+            raise ValidationError("Experience must be 1 to 40 years.")
+        return experience_years
 
 
 class AdministratorProfileForm(forms.ModelForm):
@@ -283,10 +350,19 @@ class AdministratorProfileForm(forms.ModelForm):
         widgets = {
             "bio": forms.TextInput(attrs={"placeholder": "Enter your bio"}),
             "experience_years": forms.NumberInput(
-                attrs={"placeholder": "Enter your experience"}
+                attrs={"placeholder": "Enter experience in years"}
             ),
         }
         help_texts = {
-            "bio": "Specify your bio (e.g., Name, Place, Other).",
-            "experience_years": "(1 - 10)",
+            "bio": "Specify your bio (e.g., Name, Place, Other) [1-500 characyers].",
+            "experience_years": "(1 - 40)",
         }
+
+    def clean_experience_years(self):
+        experience_years = self.cleaned_data["experience_years"]
+
+        if not experience_years:
+            raise ValidationError("Experience years is required.")
+        if experience_years < 1 or experience_years > 40:
+            raise ValidationError("Experience must be 1 to 40 years.")
+        return experience_years

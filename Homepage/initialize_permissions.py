@@ -29,10 +29,10 @@ def initialize_groups_permissions(sender, **kwargs):
         )
         customer_permissions[codename] = customer_permission
 
-        if created:
-            print(f"Permission created for {description}")
-        else:
-            print(f"Permission '{description}' already exists")
+        # if created:
+        #     print(f"Permission created for {description}")
+        # else:
+        #     print(f"Permission '{description}' already exists")
 
     customer_group, created = Group.objects.get_or_create(name="CUSTOMER")
     if created:
@@ -84,10 +84,10 @@ def initialize_groups_permissions(sender, **kwargs):
         )
         seller_permissions[codename] = seller_permission
 
-        if created:
-            print(f"Permission created for {description}")
-        else:
-            print(f"Permission '{description}' already exists")
+        # if created:
+        #     print(f"Permission created for {description}")
+        # else:
+        #     print(f"Permission '{description}' already exists")
 
     seller_group, created = Group.objects.get_or_create(name="SELLER")
     if created:
@@ -124,10 +124,10 @@ def initialize_groups_permissions(sender, **kwargs):
         )
         csr_permissions[codename] = csr_permission
 
-        if created:
-            print(f"Permission created for {description}")
-        else:
-            print(f"Permission '{description}' already exists")
+        # if created:
+        #     print(f"Permission created for {description}")
+        # else:
+        #     print(f"Permission '{description}' already exists")
 
     csr_group, created = Group.objects.get_or_create(name="CUSTOMER REPRESENTATIVE")
     if created:
@@ -172,10 +172,10 @@ def initialize_groups_permissions(sender, **kwargs):
         )
         manager_permissions[codename] = manager_permission
 
-        if created:
-            print(f"Permission created for {description}")
-        else:
-            print(f"Permission '{description}' already exists")
+        # if created:
+        #     print(f"Permission created for {description}")
+        # else:
+        #     print(f"Permission '{description}' already exists")
 
     manager_group, created = Group.objects.get_or_create(name="MANAGER")
     if created:
@@ -237,10 +237,10 @@ def initialize_groups_permissions(sender, **kwargs):
             defaults={"name": description},
         )
         admin_permissions[codename] = admin_permission
-        if created:
-            print(f"Permission created for {description}")
-        else:
-            print(f"Permission '{description}' already exists")
+        # if created:
+        #     print(f"Permission created for {description}")
+        # else:
+        #     print(f"Permission '{description}' already exists")
 
     admin_group, created = Group.objects.get_or_create(name="ADMINISTRATOR")
     for codename, permission in admin_permissions.items():

@@ -6,8 +6,6 @@ django_countries==7.5.1
 
 django_phonenumber_field==7.3.0
 
-django_sendgrid==1.0.1
-
 google_api_python_client==2.111.0
 
 protobuf==4.25.2
@@ -15,7 +13,7 @@ protobuf==4.25.2
 python-decouple==3.8
 
 python-slugify==8.0.3
-sendgrid-django==4.2.0
+
 Requests==2.31.0
 
 sendgrid==6.11.0

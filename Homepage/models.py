@@ -4,6 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from phonenumber_field.modelfields import PhoneNumberField
 from django.conf import settings
 from django_countries.fields import CountryField
+from django.core.exceptions import ValidationError
 
 
 class CustomUserManager(BaseUserManager):
@@ -17,14 +18,15 @@ class CustomUserManager(BaseUserManager):
 
         # Create a UserProfile for the user
         UserProfile.objects.create(
-            user=user,
-            full_name="",
+            user=self,
+            full_name="dummy_name",
             age=18,
-            gender="",
-            phone_number="",
-            city="",
-            country="",
-            postal_code="",
+            gender="Male",
+            phone_number="+923074649892",
+            city="dummy",
+            country="NZ",
+            postal_code="54400",
+            shipping_address="default",
         )
 
         return user
@@ -77,65 +79,144 @@ class CustomUser(AbstractUser):
 
 
 class UserProfile(models.Model):
+    GENDER_CHOICES = [
+        ("Male", "Male"),
+        ("Female", "Female"),
+        ("Non-binary", "Non-binary"),
+        ("Other", "Other"),
+    ]
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, name="user")
     full_name = models.CharField(max_length=50, blank=False)
     age = models.IntegerField(blank=False, default=18)
-    gender = models.CharField(max_length=30, blank=False)
-    phone_number = PhoneNumberField(null=False, blank=False, unique=False)
+    gender = models.CharField(max_length=15, blank=False, choices=GENDER_CHOICES)
+    phone_number = PhoneNumberField(blank=False, unique=False)
     city = models.CharField(max_length=100, blank=False)
     country = CountryField(
         multiple=False, blank_label="(select country)", blank=False, null="NZ"
     )
     postal_code = models.CharField(max_length=20, blank=False)
-    shipping_address = models.CharField(max_length=1000, null=True, blank=False)
+    shipping_address = models.CharField(max_length=1000, blank=False)
+
+    def clean(self):
+        super().clean()
+        if not self.age:
+            raise ValidationError("Valid age is required,")
+        if self.age < 18 or self.age > 130:
+            raise ValidationError("Valid age is required, Hint: 0 to 130")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class CustomerProfile(models.Model):
-    custumer_profile = models.OneToOneField(
+    customer_profile = models.OneToOneField(
         UserProfile, on_delete=models.CASCADE, name="customer_profile", default=None
     )
     customuser_type_1 = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE, name="customuser_type_1", default=None
     )
-    shipping_address = models.CharField(
-        max_length=255, blank=False, null=True, default=None
-    )
-    wishlist = models.IntegerField(blank=True, null=True, default=None)
+    shipping_address = models.CharField(max_length=255, blank=True)
+    wishlist = models.IntegerField(blank=True)
+
+    def clean(self):
+        super().clean()
+        if not self.wishlist:
+            raise ValidationError("Valid Whislist is required,")
+        if self.wishlist <= 0 or self.wishlist >= 50:
+            raise ValidationError("Valid whishlist is required, Hint: 0 to 50")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class SellerProfile(models.Model):
     seller_profile = models.OneToOneField(
-        UserProfile, on_delete=models.CASCADE, name="seller_profile", default=None
+        UserProfile,
+        on_delete=models.CASCADE,
+        name="seller_profile",
     )
     customuser_type_2 = models.OneToOneField(
-        CustomUser, on_delete=models.CASCADE, name="customuser_type_2", default=None
+        CustomUser,
+        on_delete=models.CASCADE,
+        name="customuser_type_2",
     )
-    address = models.CharField(max_length=100, null=True, blank=False)
+    address = models.CharField(max_length=100, blank=False, default="Dummy Addess")
+
+    def clean(self):
+        super().clean()
+        if not self.address:
+            raise ValueError("Shipping address is required.")
+        if len(self.address) < 10:
+            raise ValidationError(
+                "Shipping address must be at least 10 characters long."
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class CustomerServiceProfile(models.Model):
     csr_profile = models.OneToOneField(
-        UserProfile, on_delete=models.CASCADE, name="csr_profile", default=None
+        UserProfile,
+        on_delete=models.CASCADE,
+        name="csr_profile",
     )
     customuser_type_3 = models.OneToOneField(
-        CustomUser, on_delete=models.CASCADE, name="customuser_type_3", default=None
+        CustomUser,
+        on_delete=models.CASCADE,
+        name="customuser_type_3",
     )
-    department = models.CharField(max_length=50, null=True, blank=True)
-    bio = models.TextField(blank=True, null=True)
-    experience_years = models.PositiveIntegerField(blank=False, null=True)
+    department = models.CharField(max_length=50, blank=True)
+    bio = models.TextField(blank=True, max_length=500)
+    experience_years = models.PositiveIntegerField(blank=False)
+
+    def clean(self):
+        super().clean()
+        if not self.experience_years or self.experience_years < 1:
+            raise ValidationError("Experience years is required.")
+        if self.experience_years > 40:
+            raise ValidationError("Experience must be 1 to 40 years.")
+        if len(self.department) > 50:
+            raise ValidationError("Department must be 0 to 50 years.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class ManagerProfile(models.Model):
     manager_profile = models.OneToOneField(
-        UserProfile, on_delete=models.CASCADE, name="manager_profile", default=None
+        UserProfile,
+        on_delete=models.CASCADE,
+        name="manager_profile",
     )
     customuser_type_4 = models.OneToOneField(
-        CustomUser, on_delete=models.CASCADE, name="customuser_type_4", default=None
+        CustomUser,
+        on_delete=models.CASCADE,
+        name="customuser_type_4",
     )
-    team = models.CharField(max_length=50, null=True, blank=True)
+    team = models.CharField(max_length=50, blank=True)
     reports = models.CharField(max_length=100, blank=True)
-    bio = models.TextField(blank=True, null=True)
-    experience_years = models.PositiveIntegerField(blank=False, null=True)
+    bio = models.TextField(blank=True, max_length=500)
+    experience_years = models.PositiveIntegerField(blank=False)
+
+    def clean(self):
+        super().clean()
+        if not self.experience_years or self.experience_years < 1:
+            raise ValidationError("Experience years is required.")
+        if self.experience_years > 40:
+            raise ValidationError("Experience must be 1 to 40 years.")
+        if len(self.team) < 0 or len(self.team) > 50:
+            raise ValueError("Department must be 0 to 50 years.")
+        if len(self.reports) < 0 or len(self.reports) > 100:
+            raise ValidationError("Department must be 0 to 50 years.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class AdministratorProfile(models.Model):
@@ -146,21 +227,46 @@ class AdministratorProfile(models.Model):
         null=True,
     )
     admin_profile = models.OneToOneField(
-        UserProfile, on_delete=models.CASCADE, name="admin_profile", default=None
+        UserProfile,
+        on_delete=models.CASCADE,
+        name="admin_profile",
     )
-    bio = models.TextField(blank=True, null=True)
-    experience_years = models.PositiveIntegerField(blank=False, null=True)
+    bio = models.TextField(blank=True, max_length=500)
+    experience_years = models.PositiveIntegerField(blank=False)
+
+    def clean(self):
+        super().clean()
+        if not self.experience_years or self.experience_years < 1:
+            raise ValidationError("Experience years is required.")
+        if self.experience_years > 40:
+            raise ValidationError("Experience must be 1 to 40 years.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class CustomSocialAccount(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
     )
-    access_token = models.TextField(max_length=500)
+    access_token = models.TextField(max_length=500, blank=True)
     user_info = models.TextField(max_length=1000)
     token_created_at = models.DateTimeField(auto_now_add=True)
-    code = models.TextField(max_length=500, null=True)
-    refresh_token = models.TextField(max_length=500, null=True)
+    code = models.TextField(max_length=500)
+    refresh_token = models.TextField(max_length=500, blank=True)
 
-    def __str__(self):
-        return f"{self.user.username} Profile"
+    def clean(self):
+        super().clean()
+        if len(self.code) > 500:
+            raise ValidationError("code must be 0 to 500 characters.")
+        if len(self.refresh_token) > 500:
+            raise ValidationError("refresh token must be 0 to 500 characters.")
+        if len(self.access_token) > 500:
+            raise ValidationError("access token must be 0 to 500 characters.")
+        if len(self.user_info) > 1000:
+            raise ValidationError("user_info must be 0 to 1000 characters.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

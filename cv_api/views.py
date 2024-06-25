@@ -43,7 +43,14 @@ class CVApiPostRequest(TemplateView):
     template_name = "cv.html"
 
     def get_or_create_api_user(self, user_id):
-        user = CustomUser.objects.filter(id=user_id)
+        user = CustomUser.objects.filter(id=user_id).first()
+        if user:
+            return JsonResponse(
+                {
+                    "error": "User Does not exist",
+                    "error_location": "cv_api.view.CVApiPostRequest.get_or_create_api_user",
+                }
+            )
         print(f"user_get_or_create_api_user_______{user}")
 
         json_response = TokenUtils.get_user(user)
@@ -52,6 +59,13 @@ class CVApiPostRequest(TemplateView):
         return json_response
 
     def get_tokens_for_user(self, user_id):
+        if not user_id:
+            return JsonResponse(
+                {
+                    "error": "'user_id' is None ",
+                    "error_location": "cv_api.view.CVApiPostRequest.get_tokens_for_user",
+                }
+            )
         tokens = TokenUtils.get_tokens_for_user(user_id)
         return tokens
 
@@ -143,46 +157,58 @@ class CVApiSubmitForm(View):
                 print(f"api_user_id________________{api_user_id}")
                 return api_user_id
             else:
+                user_data = {}
                 try:
-                    user_data = {}
-                    user = CustomUser.objects.filter(id=user_id)
-                    token_instance = TokensForUser.objects.filter(user__id=user_id)
+                    user = CustomUser.objects.filter(id=user_id).first()
+                except:
+                    return redirect("Homepage:signup")
 
-                    if token_instance:
-                        token_instance = token_instance[0]
-                    else:
-                        return JsonResponse(
-                            {"error": f"token instance for user_id {user_id} not found"}
-                        )
+                token_instance = TokensForUser.objects.filter(user__id=user_id)
 
-                    user_data = TokenUtils.get_user(user)
-                    print(f"user_data__**************____id________________{user_data}")
-                    return user_data["id"]
+                if token_instance:
+                    token_instance = token_instance[0]
+                else:
+                    return redirect("Homepage:Home")
+
+                user_data = TokenUtils.get_user(user)
+                print(f"user_data__**************____id________________{user_data}")
+                try:
+                    PersonalInfo.objects.create(
+                        user_id_for_personal_info=self.request.user,
+                        api_user_id_for_cv=user_data["id"],
+                        api_id_of_cv="9999999",
+                    )
                 except Exception as e:
-                    return JsonResponse(str(e), safe=False)
+                    messages.info(self.request, "Please try again!")
+                    return redirect("Homepage:Home")
+
+                return user_data["id"]
+
         except Exception as e:
-            return JsonResponse(str(e), safe=False)
+            return JsonResponse(
+                {
+                    "error": str(e),
+                    "location": "cv_api.views.CVApiSubmitForm.get_api_user_id",
+                }
+            )
 
     def get(self, request, **kwargs):
         api_user_id = self.get_api_user_id(self.request.user.id)
         print(f"api_user_id___________{api_user_id}")
-        try:
-            PersonalInfo.objects.create(
-                user_id_for_personal_info=self.request.user,
-                api_user_id_for_cv=api_user_id,
-                api_id_of_cv="9999999",
-            )
-        except Exception as e:
-            return JsonResponse({"error________________": str(e)})
 
-        if settings.DEBUG:
-            return HttpResponseRedirect(
-                f"https://diverse-intense-whippet.ngrok-free.app/resume/?user_id={api_user_id}"
-            )
-        else:
-            return HttpResponseRedirect(
-                f"https://osamaaslam.pythonanywhere.com/resume/?user_id={api_user_id}"
-            )
+        try:
+
+            if settings.DEBUG:
+                return HttpResponseRedirect(
+                    f"https://diverse-intense-whippet.ngrok-free.app/resume/?user_id={api_user_id}"
+                )
+            else:
+                return HttpResponseRedirect(
+                    f"https://osamaaslam.pythonanywhere.com/resume/?user_id={api_user_id}"
+                )
+        except Exception as e:
+            messages.info(self.request, "Please try again!")
+            return redirect("Homepage:Home")
 
 
 class ListOfCVForUser(TemplateView):
@@ -254,6 +280,13 @@ class RetrieveCVDataToUpdate(View):
 
     def get(self, request, **kwargs):
         user_id = self.request.user.id
+        if (
+            not "sessionid" not in request.session
+            or request.session["user_id"] is None
+            or "user_id" not in request.session
+        ):
+            return redirect("Homepage:login")
+
         access_token = self.get_token_from_database(user_id)
         if access_token:
 
@@ -269,9 +302,7 @@ class RetrieveCVDataToUpdate(View):
                 "Authorization": f"Bearer {access_token}",
             }
         else:
-            return JsonResponse(
-                {"error": f"token is null / not valid / expires {access_token}"}
-            )
+            return redirect("Homepage:Home")
 
         # verify = Flase, is used to bypass SSL or ask the API endpoint not to validate the request
         response = requests.get(url, headers=headers)
@@ -439,7 +470,8 @@ class RetrieveCVDataToUpdate(View):
 
             return response
         else:
-            return JsonResponse({"page": "not found"})
+            messages.info(request, "Something went wrong, Try again!")
+            return redirect("Homepage:Home")
 
     def post(self, request, **kwargs):
         personal_info_id = kwargs["personal_info_id"]
@@ -700,7 +732,7 @@ class DeleteCVForUser(View):
         user_id = self.request.user.id
         access_token = self.get_token_from_database(user_id)
         if not access_token:
-            messages.error(self.request, "Token not valid or expired.")
+            messages.error(self.request, "Token not found for user.")
             return HttpResponsePermanentRedirect("/")
 
         headers = {
@@ -719,11 +751,12 @@ class DeleteCVForUser(View):
             response = requests.delete(url, headers=headers, verify=False)
             response.raise_for_status()
 
-            if response.status_code == 200:
+            if response.status_code == 204:
                 # Get all PersonalInfo instances for current user
                 instances_of_current_user = PersonalInfo.objects.select_related(
                     "user_id_for_personal_info"
                 )
+
                 if response.json()["status"] == "DELETED":
                     # Get the required instance
                     required_instance = instances_of_current_user.filter(
@@ -768,14 +801,11 @@ class WebHookEvent(View):
 
                 personal_info = PersonalInfo.objects.filter(
                     api_id_of_cv=data["id"], api_user_id_for_cv=data["user_id"]
-                )
-                if personal_info:
-                    personal_info = personal_info[0]
-                else:
+                ).first()
+                if not personal_info:
                     personal_info = PersonalInfo.objects.filter(
                         api_id_of_cv="9999999", api_user_id_for_cv=data["user_id"]
-                    )
-                    personal_info = personal_info[0]
+                    ).first()
 
             except Exception as e:
                 print(f"exception in webhook View: {str(e)}")
@@ -835,7 +865,7 @@ class WebHookEvent(View):
                         {" error deleting on Client-Side": str(e)}, status=500
                     )
 
-            elif data["event"] == "cv_deletIion_failed":
+            elif data["event"] == "cv_deletion_failed":
                 try:
                     personal_info.status = data["status"]
                     personal_info.save()

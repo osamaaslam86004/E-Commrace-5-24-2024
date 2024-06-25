@@ -49,7 +49,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 if DEBUG:
     ALLOWED_HOSTS = [
         "localhost",
@@ -455,7 +455,7 @@ LOGGING = {
     "loggers": {
         "axes": {
             "handlers": ["console"],
-            "level": "DEBUG",
+            "level": "ERROR",  # Set the level to ERROR to suppress AXES logs
             "propagate": True,
         },
     },

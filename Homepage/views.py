@@ -229,9 +229,7 @@ def custom_password_reset(request):
     if request.method == "POST":
         email = request.POST.get("email")
 
-        user = CustomUser.objects.filter(email=email)
-        user = user[0]
-
+        user = CustomUser.objects.filter(email=email).first()
         if user is not None:
             try:
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -256,8 +254,8 @@ def custom_password_reset(request):
 
                 # Send the email
                 response = sg.client.mail.send.post(request_body=mail_json)
-                print(response.status_code)
-                print(response.headers)
+                logger.info(f"Email send response status: {response.status_code}")
+                logger.debug(f"Email send response headers: {response.headers}")
 
                 # Check the response status and return appropriate message
                 if response.status_code == 202:
@@ -292,7 +290,7 @@ class CustomPasswordResetConfirmView(View):
                 token = kwargs["token"]
 
                 uid = force_str(urlsafe_base64_decode(uidb64))
-                user, created = CustomUser.objects.get_or_create(pk=uid)
+                user = CustomUser.objects.filter(pk=uid).first()
 
                 try:
                     user.set_password(password1)
@@ -497,27 +495,30 @@ class CustomLogoutView(View, SuccessMessageMixin):
                         id=user_id, user=request.user
                     ).exists():
                         logout(request)
+                        messages.success(request, self.success_message)
                     else:
                         social_user = CustomSocialAccount.objects.get(id=user_id)
                         if self.google_logout(request, social_user.access_token):
-                            logout(request)
                             messages.success(request, self.success_message)
+                            logout(request)
+
                         else:
-                            messages.error(
-                                request, "Unable to log you out from Google."
-                            )
-                        try:
+                            messages.info(request, "Unable to log you out from Google.")
+                            # try:
                             social_user.access_token = ""
                             social_user.refresh_token = ""
                             social_user.save()
+                            logout(request)  # added 6/16/2024
 
-                        except Exception as e:
-                            logger.exception("Error saving social user: %s", e)
-                            messages.error(request, "{e}")
+                        # except Exception as e:
+                        #     logger.exception("Error saving social user: %s", e)
+                        #     messages.error(request, "{e}")
                 else:
                     messages.error(request, "You are not logged in. Please login!")
+                    logout(request)
             else:
                 messages.error(request, "You are not logged in. Please login!")
+                logout(request)
         except Exception as e:
             logger.exception("Error during logout: %s", e)
             messages.error(request, "An error occurred during logout.")
@@ -588,30 +589,26 @@ class CustomerProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = CustomSocialAccount.objects.get_or_create(
-                    id=social_id
-                )
+                social_user = CustomSocialAccount.objects.filter(id=social_id).first()
                 # model level permissions
                 content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
 
-                if not created:
-                    user = social_user.user
-                    # get all permission for user=social_user.user except Model level
-                    user_permissions = user.get_all_permissions()
-                    clean_permissions = {
-                        permission.split(".")[1] for permission in user_permissions
-                    }
-                    # update the user permission with content type permissions
-                    clean_permissions.update(
-                        {permission.name for permission in permissions}
-                    )
+                user = request.user
+                # get all permission for user=social_user.user except Model level
+                user_permissions = user.get_all_permissions()
+                clean_permissions = {
+                    permission.split(".")[1] for permission in user_permissions
+                }
+                # update the user permission with content type permissions
+                clean_permissions.update(
+                    {permission.name for permission in permissions}
+                )
 
-                    return clean_permissions
-                else:
-                    pass
+                return clean_permissions
+
             except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
@@ -679,27 +676,7 @@ class CustomerProfilePageView(PermissionRequiredMixin, TemplateView):
                 return redirect(request.GET.get("next", "/"))
             except:
                 messages.error(request, "Image upload failed")
-                return render(
-                    request,
-                    self.template_name,
-                    {
-                        "user_profile_form": user_profile_form,
-                        "customer_profile_form": customer_profile_form,
-                        "image_form": image_form,
-                    },
-                )
-        else:
-            if (
-                user_profile_form.is_valid()
-                and customer_profile_form.is_valid()
-                and not image_form.is_valid()
-            ):
-                request.user.image = CustomUser._meta.get_field("image").get_default()
-                user_profile_form.save()
-                customer_profile_form.save()
-                messages.success(request, "Your profile is successfully updated!")
-                return redirect(request.GET.get("next", "/"))
-            messages.error(request, "Image upload failed or Form not valid")
+
         return render(
             request,
             self.template_name,
@@ -780,30 +757,26 @@ class SellerProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = CustomSocialAccount.objects.get_or_create(
-                    id=social_id
-                )
+                social_user = CustomSocialAccount.objects.filter(id=social_id).first()
                 # model level permissions
                 content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
 
-                if not created:
-                    user = social_user.user
-                    # get all permission for user=social_user.user except Model level
-                    user_permissions = user.get_all_permissions()
-                    clean_permissions = {
-                        permission.split(".")[1] for permission in user_permissions
-                    }
-                    # update the user permission with content type permissions
-                    clean_permissions.update(
-                        {permission.name for permission in permissions}
-                    )
+                user = request.user
+                # get all permission for user=social_user.user except Model level
+                user_permissions = user.get_all_permissions()
+                clean_permissions = {
+                    permission.split(".")[1] for permission in user_permissions
+                }
+                # update the user permission with content type permissions
+                clean_permissions.update(
+                    {permission.name for permission in permissions}
+                )
 
-                    return clean_permissions
-                else:
-                    pass
+                return clean_permissions
+
             except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
@@ -863,27 +836,7 @@ class SellerProfilePageView(PermissionRequiredMixin, TemplateView):
                 return redirect(request.GET.get("next", "/"))
             except Exception as e:
                 messages.error(request, "Image upload failed")
-                return render(
-                    request,
-                    self.template_name,
-                    {
-                        "user_profile_form": user_profile_form,
-                        "seller_profile_form": seller_profile_form,
-                        "image_form": image_form,
-                    },
-                )
-        else:
-            if (
-                user_profile_form.is_valid()
-                and seller_profile_form.is_valid()
-                and not image_form.is_valid()
-            ):
-                request.user.image = CustomUser._meta.get_field("image").get_default()
-                user_profile_form.save()
-                seller_profile_form.save()
-                messages.success(request, "Your profile is successfully updated!")
-                return redirect(request.GET.get("next", "/"))
-            messages.error(request, "Image upload failed or Form not valid")
+
         return render(
             request,
             self.template_name,
@@ -963,30 +916,26 @@ class CSRProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = CustomSocialAccount.objects.get_or_create(
-                    id=social_id
-                )
+                social_user = CustomSocialAccount.objects.filter(id=social_id).first()
                 # model level permissions
                 content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
 
-                if not created:
-                    user = social_user.user
-                    # get all permission for user=social_user.user except Model level
-                    user_permissions = user.get_all_permissions()
-                    clean_permissions = {
-                        permission.split(".")[1] for permission in user_permissions
-                    }
-                    # update the user permission with content type permissions
-                    clean_permissions.update(
-                        {permission.name for permission in permissions}
-                    )
+                user = request.user
+                # get all permission for user=social_user.user except Model level
+                user_permissions = user.get_all_permissions()
+                clean_permissions = {
+                    permission.split(".")[1] for permission in user_permissions
+                }
+                # update the user permission with content type permissions
+                clean_permissions.update(
+                    {permission.name for permission in permissions}
+                )
 
-                    return clean_permissions
-                else:
-                    pass
+                return clean_permissions
+
             except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
@@ -1046,27 +995,7 @@ class CSRProfilePageView(PermissionRequiredMixin, TemplateView):
                 return redirect(request.GET.get("next", "/"))
             except:
                 messages.error(request, "Image upload failed")
-                return render(
-                    request,
-                    self.template_name,
-                    {
-                        "user_profile_form": user_profile_form,
-                        "csr_profile_form": csr_profile_form,
-                        "image_form": image_form,
-                    },
-                )
-        else:
-            if (
-                user_profile_form.is_valid()
-                and csr_profile_form.is_valid()
-                and not image_form.is_valid()
-            ):
-                request.user.image = CustomUser._meta.get_field("image").get_default()
-                user_profile_form.save()
-                csr_profile_form.save()
-                messages.success(request, "Your profile is successfully updated!")
-                return redirect(request.GET.get("next", "/"))
-            messages.error(request, "Image upload failed or Form not valid")
+
         return render(
             request,
             self.template_name,
@@ -1148,30 +1077,26 @@ class ManagerProfilePageView(PermissionRequiredMixin, TemplateView):
             return clean_permissions
         else:
             try:
-                social_user, created = CustomSocialAccount.objects.get_or_create(
-                    id=social_id
-                )
+                social_user = CustomSocialAccount.objects.filter(id=social_id).first()
                 # model level permissions
                 content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
 
-                if not created:
-                    user = social_user.user
-                    # get all permission for user=social_user.user except Model level
-                    user_permissions = user.get_all_permissions()
-                    clean_permissions = {
-                        permission.split(".")[1] for permission in user_permissions
-                    }
-                    # update the user permission with content type permissions
-                    clean_permissions.update(
-                        {permission.name for permission in permissions}
-                    )
+                user = request.user
+                # get all permission for user=social_user.user except Model level
+                user_permissions = user.get_all_permissions()
+                clean_permissions = {
+                    permission.split(".")[1] for permission in user_permissions
+                }
+                # update the user permission with content type permissions
+                clean_permissions.update(
+                    {permission.name for permission in permissions}
+                )
 
-                    return clean_permissions
-                else:
-                    pass
+                return clean_permissions
+
             except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
@@ -1230,27 +1155,7 @@ class ManagerProfilePageView(PermissionRequiredMixin, TemplateView):
                 return redirect(request.GET.get("next", "/"))
             except:
                 messages.error(request, "Image upload failed")
-                return render(
-                    request,
-                    self.template_name,
-                    {
-                        "user_profile_form": user_profile_form,
-                        "manager_profile_form": manager_profile_form,
-                        "image_form": image_form,
-                    },
-                )
-        else:
-            if (
-                user_profile_form.is_valid()
-                and manager_profile_form.is_valid()
-                and not image_form.is_valid()
-            ):
-                request.user.image = CustomUser._meta.get_field("image").get_default()
-                user_profile_form.save()
-                manager_profile_form.save()
-                messages.success(request, "Your profile is successfully updated!")
-                return redirect(request.GET.get("next", "/"))
-            messages.error(request, "Image upload failed or Form not valid")
+
         return render(
             request,
             self.template_name,
@@ -1326,30 +1231,26 @@ class AdminProfilePageView(LoginRequiredMixin, PermissionRequiredMixin, Template
             return clean_permissions
         else:
             try:
-                social_user, created = CustomSocialAccount.objects.get_or_create(
-                    id=social_id
-                )
+                social_user = CustomSocialAccount.objects.filter(id=social_id).first()
                 # model level permissions
                 content_type = ContentType.objects.get_for_model(CustomSocialAccount)
                 permissions = Permission.objects.filter(
                     content_type=content_type,
                 )
 
-                if not created:
-                    user = social_user.user
-                    # get all permission for user=social_user.user except Model level
-                    user_permissions = user.get_all_permissions()
-                    clean_permissions = {
-                        permission.split(".")[1] for permission in user_permissions
-                    }
-                    # update the user permission with content type permissions
-                    clean_permissions.update(
-                        {permission.name for permission in permissions}
-                    )
+                user = request.user
+                # get all permission for user=social_user.user except Model level
+                user_permissions = user.get_all_permissions()
+                clean_permissions = {
+                    permission.split(".")[1] for permission in user_permissions
+                }
+                # update the user permission with content type permissions
+                clean_permissions.update(
+                    {permission.name for permission in permissions}
+                )
 
-                    return clean_permissions
-                else:
-                    pass
+                return clean_permissions
+
             except CustomSocialAccount.DoesNotExist:
                 messages.error(request, "Social user does not exist")
                 return {}
@@ -1437,27 +1338,7 @@ class AdminProfilePageView(LoginRequiredMixin, PermissionRequiredMixin, Template
                 return redirect("/")
             except:
                 messages.error(request, "Image upload failed")
-                return render(
-                    request,
-                    self.template_name,
-                    {
-                        "user_profile_form": user_profile_form,
-                        "admin_profile_form": admin_profile_form,
-                        "image_form": image_form,
-                    },
-                )
-        else:
-            if (
-                user_profile_form.is_valid()
-                and admin_profile_form.is_valid()
-                and not image_form.is_valid()
-            ):
-                request.user.image = CustomUser._meta.get_field("image").get_default()
-                user_profile_form.save()
-                admin_profile_form.save()
-                messages.success(request, "Your profile is successfully updated!")
-                return redirect("/")
-            messages.error(request, "Image upload failed or Form not valid")
+
         return render(
             request,
             self.template_name,

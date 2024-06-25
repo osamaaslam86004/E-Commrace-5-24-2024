@@ -30,11 +30,6 @@ class TokenUtils:
 
         headers = {"Content-Type": "application/json"}
 
-        if user:
-            user = user[0]
-        else:
-            return JsonResponse({"error_register_user": "either user is None"})
-
         user_data = {
             "email": user.email,
             "username": user.username,
@@ -66,12 +61,6 @@ class TokenUtils:
 
     @staticmethod  # It can be called either on the class (e.g. C.f()) or on an instance (e.g. C().f()).
     def get_user(user):
-
-        if user:
-            user = user[0]
-            print(f"user_______{user}")
-        else:
-            return JsonResponse({"error_get_user": "user is None"})
 
         if settings.DEBUG:
             api_url = "https://diverse-intense-whippet.ngrok-free.app/api/auth/get-api-user-id-for-user/"
@@ -127,17 +116,8 @@ class TokenUtils:
 
         headers = {"Content-Type": "application/json"}
 
-        try:
-            user = CustomUser.objects.filter(id=user_id)
-            print(f"user_get_tokens_for_user________________{user}")
-            if user:
-                user = user[0]
-                print(f"user_email____________{user.email}")
-                print(f"user.username___________{user.username}")
-            else:
-                return JsonResponse({"error_get_tokens_for_user": "user is None"})
-        except Exception as e:
-            return JsonResponse({"error_get_tokens_for_user": str(e)})
+        user = CustomUser.objects.filter(id=user_id).first()
+        print(f"user_get_tokens_for_user________________{user}")
 
         # Define the user data to be sent in the request body
         user_data = {

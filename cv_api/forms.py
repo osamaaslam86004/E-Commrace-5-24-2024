@@ -7,15 +7,35 @@ from cv_api.models import (
     JobAccomplishment,
     SkillAndSkillLevel,
     ProgrammingArea,
-    Projects, 
-    Publication
+    Projects,
+    Publication,
 )
+
 
 class PersonalInfoForm(forms.ModelForm):
     class Meta:
         model = PersonalInfo
-        fields = ['first_name', 'middle_name', 'last_name', 'suffix', 'locality', 'region', 'title', 'email', 'linkedin', 'facebook', 'github', 'site', 'twittername']
-        exclude = ["id", "api_user_id_for_cv", "user_id_for_personal_info", "api_id_for_cv"]
+        fields = [
+            "first_name",
+            "middle_name",
+            "last_name",
+            "suffix",
+            "locality",
+            "region",
+            "title",
+            "email",
+            "linkedin",
+            "facebook",
+            "github",
+            "site",
+            "twittername",
+        ]
+        exclude = [
+            "id",
+            "api_user_id_for_cv",
+            "user_id_for_personal_info",
+            "api_id_for_cv",
+        ]
 
     def __init__(self, *args, **kwargs):
         super(PersonalInfoForm, self).__init__(*args, **kwargs)
@@ -25,13 +45,11 @@ class PersonalInfoForm(forms.ModelForm):
         )
 
 
-
 class OverviewForm(forms.ModelForm):
     class Meta:
         model = Overview
-        fields = "__all__"
+        fields = ["text"]
         exclude = ["id", "personal_info"]
-
 
 
 class EducationfoForm(forms.ModelForm):
@@ -117,8 +135,6 @@ class ProjectsForm(forms.ModelForm):
         model = Projects
         fields = "__all__"
         exclude = ["id", "personal_info"]
-
-
 
 
 class PublicationForm(forms.ModelForm):
