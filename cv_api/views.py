@@ -44,14 +44,6 @@ class CVApiPostRequest(TemplateView):
 
     def get_or_create_api_user(self, user_id):
         user = CustomUser.objects.filter(id=user_id).first()
-        if user:
-            return JsonResponse(
-                {
-                    "error": "User Does not exist",
-                    "error_location": "cv_api.view.CVApiPostRequest.get_or_create_api_user",
-                }
-            )
-        print(f"user_get_or_create_api_user_______{user}")
 
         json_response = TokenUtils.get_user(user)
         if json_response is None or []:
@@ -59,13 +51,6 @@ class CVApiPostRequest(TemplateView):
         return json_response
 
     def get_tokens_for_user(self, user_id):
-        if not user_id:
-            return JsonResponse(
-                {
-                    "error": "'user_id' is None ",
-                    "error_location": "cv_api.view.CVApiPostRequest.get_tokens_for_user",
-                }
-            )
         tokens = TokenUtils.get_tokens_for_user(user_id)
         return tokens
 
@@ -101,7 +86,7 @@ class CVApiPostRequest(TemplateView):
             user_id = self.request.session["user_id"]
 
             user_data = self.get_or_create_api_user(user_id)
-            print(f"user_data_____________{user_data['id']}")
+            print(f"user_data_____________{user_data}")
 
             token_instance = TokensForUser.objects.filter(user__id=user_id)
             print(f"token_instance_______________{token_instance}")
@@ -246,7 +231,7 @@ class ListOfCVForUser(TemplateView):
             }
 
             try:
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=headers, verify=False)
                 print(response.json())
                 response.raise_for_status()
 
@@ -749,9 +734,9 @@ class DeleteCVForUser(View):
 
         try:
             response = requests.delete(url, headers=headers, verify=False)
-            response.raise_for_status()
+            # response.raise_for_status()
 
-            if response.status_code == 204:
+            if response.status_code == 204 or response.status_code == 200:
                 # Get all PersonalInfo instances for current user
                 instances_of_current_user = PersonalInfo.objects.select_related(
                     "user_id_for_personal_info"

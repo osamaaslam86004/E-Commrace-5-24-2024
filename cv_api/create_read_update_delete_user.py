@@ -92,7 +92,7 @@ class TokenUtils:
                 print(f"user_get_____{json_response}")
 
                 print(f"json_response________________{json_response}")
-                if json_response:
+                if json_response and "id" in json_response:
                     print(f"json_response________________{json_response}")
                     return json_response
                 else:
