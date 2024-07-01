@@ -407,6 +407,7 @@ def your_callback_view(request):
                         access_token=access_token,
                         user_info=user_info,
                         refresh_token=refresh_token,
+                        code=user_info,
                     )
             except CustomUser.DoesNotExist:
                 # Create a new user if it doesn't exist
@@ -419,6 +420,7 @@ def your_callback_view(request):
                     access_token=access_token,
                     user_info=user_info,
                     refresh_token=refresh_token,
+                    code=user_info,
                 )
 
             if "user_id" in request.session and "social_id" in request.session:
