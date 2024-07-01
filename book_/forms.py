@@ -2,40 +2,7 @@ from django import forms
 from book_.models import BookAuthorName, BookFormat, Rating, Review
 from django.core.validators import MinValueValidator, MaxValueValidator
 from ckeditor.widgets import CKEditorWidget
-
-# class BookAuthorNameForm(forms.ModelForm):
-#     class Meta:
-#         model = BookAuthorName
-#         fields = ["author_name", "book_name", "about_author", "language"]
-#         labels = {
-#             "author_name": "Author Name",
-#             "book_name": "Book Name",
-#             "about_author": "About Author",
-#             "language": "Language",
-#         }
-#         widgets = {
-#             "author_name": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter the name of the author",
-#                 }
-#             ),
-#             "book_name": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter the name of the book",
-#                 }
-#             ),
-#             "about_author": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter previous work of author",
-#                 }
-#             ),
-#             "language": forms.TextInput(
-#                 attrs={"class": "form-control", "placeholder": "Enter the language"}
-#             ),
-#         }
+from django.core.exceptions import ValidationError
 
 
 class BookAuthorNameForm(forms.ModelForm):
@@ -81,7 +48,7 @@ class BookAuthorNameForm(forms.ModelForm):
 
     def clean_book_name(self):
         book_name = self.cleaned_data.get("book_name")
-        if len(book_name) > 255:
+        if len(book_name) > 50:
             raise forms.ValidationError("Book name must be 255 characters or fewer.")
         return book_name
 
@@ -177,17 +144,17 @@ class BookFormatForm(forms.ModelForm):
             raise forms.ValidationError("Book author name is required.")
         return book_author_name
 
-    def clean_user(self):
-        user = self.cleaned_data.get("user")
-        if not user:
-            raise forms.ValidationError("User is required.")
-        return user
+    # def clean_user(self):
+    #     user = self.cleaned_data.get("user")
+    #     if not user:
+    #         raise forms.ValidationError("User is required.")
+    #     return user
 
-    def clean_product_category(self):
-        product_category = self.cleaned_data.get("product_category")
-        if not product_category:
-            raise forms.ValidationError("Product category is required.")
-        return product_category
+    # def clean_product_category(self):
+    #     product_category = self.cleaned_data.get("product_category")
+    #     if not product_category:
+    #         raise forms.ValidationError("Product category is required.")
+    #     return product_category
 
     def clean_format(self):
         format = self.cleaned_data.get("format")
@@ -235,7 +202,7 @@ class BookFormatForm(forms.ModelForm):
 
     def clean_narrator(self):
         narrator = self.cleaned_data.get("narrator")
-        if len(narrator) > 20:
+        if narrator is None or len(narrator) > 20:
             raise forms.ValidationError(
                 "Length of narrator must be less than 20 characters."
             )
@@ -247,10 +214,10 @@ class BookFormatForm(forms.ModelForm):
             raise forms.ValidationError("Price must be between 1 and 999999.99.")
         return price
 
-    def clean_is_active(self):
-        is_active = self.cleaned_data.get("is_active")
-        # Add custom validation if needed
-        return is_active
+    # def clean_is_active(self):
+    #     is_active = self.cleaned_data.get("is_active")
+    #     # Add custom validation if needed
+    #     return is_active
 
     def clean_restock_threshold(self):
         restock_threshold = self.cleaned_data.get("restock_threshold")
@@ -278,87 +245,10 @@ class BookFormatForm(forms.ModelForm):
             raise forms.ValidationError("image 3 is None.")
         return image_3
 
-    def clean(self):
-        cleaned_data = super().clean()
-        # Add additional custom validation if needed
-        return cleaned_data
-
-
-# class BookFormatForm(forms.ModelForm):
-#     is_active = forms.TypedChoiceField(
-#         coerce=lambda x: x == "True",
-#         choices=[(True, "Active"), (False, "In Active")],
-#         widget=forms.RadioSelect(),
-#         required=False,
-#         initial=True,
-#         label="Choose the status of the book",
-#     )
-
-#     class Meta:
-#         model = BookFormat
-#         fields = [
-#             "format",
-#             "is_active",
-#             "image_1",
-#             "image_2",
-#             "image_3",
-#             "is_new_available",
-#             "is_used_available",
-#             "publisher_name",
-#             "edition",
-#             "length",
-#             "narrator",
-#             "price",
-#             "publishing_date",
-#         ]
-
-#         labels = {
-#             "book_author_name": "Author Name",
-#             "format": "Format",
-#             "is_new_available": "Is New Available",
-#             "is_used_available": "Is Used Available",
-#             "publisher_name": "Publisher Name",
-#             "edition": "Edition",
-#             "length": "Length",
-#             "narrator": "Narrator",
-#             "price": "Price",
-#             "publishing_date": "Publishing Date",
-#         }
-
-#         widgets = {
-#             "format": forms.Select(attrs={"class": "form-control"}),
-#             "is_new_available": forms.NumberInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "enter the number of available new books",
-#                 }
-#             ),
-#             "is_used_available": forms.NumberInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "enter the number of available used books",
-#                 }
-#             ),
-#             "publisher_name": forms.TextInput(attrs={"class": "form-control"}),
-#             "edition": forms.TextInput(
-#                 attrs={"class": "form-control", "placeholder": "Rebound version / 2012"}
-#             ),
-#             "length": forms.NumberInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "enter the number of pages of a book",
-#                 }
-#             ),
-#             "narrator": forms.TextInput(attrs={"class": "form-control"}),
-#             "price": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "step": "0.01",
-#                     "placeholder": "Price must be between 1 and 999999.99.",
-#                 }
-#             ),
-#             "publishing_date": forms.DateInput(attrs={"format": "%Y-%m-%d"}),
-#         }
+    # def clean(self):
+    #     cleaned_data = super().clean()
+    #     # Add additional custom validation if needed
+    #     return cleaned_data
 
 
 class RatingForm(forms.ModelForm):
@@ -472,3 +362,115 @@ class CustomBookFormatFilterForm(forms.Form):
         validators=[MaxValueValidator(5)],
         widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
+
+
+# class BookAuthorNameForm(forms.ModelForm):
+#     class Meta:
+#         model = BookAuthorName
+#         fields = ["author_name", "book_name", "about_author", "language"]
+#         labels = {
+#             "author_name": "Author Name",
+#             "book_name": "Book Name",
+#             "about_author": "About Author",
+#             "language": "Language",
+#         }
+#         widgets = {
+#             "author_name": forms.TextInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "Enter the name of the author",
+#                 }
+#             ),
+#             "book_name": forms.TextInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "Enter the name of the book",
+#                 }
+#             ),
+#             "about_author": forms.TextInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "Enter previous work of author",
+#                 }
+#             ),
+#             "language": forms.TextInput(
+#                 attrs={"class": "form-control", "placeholder": "Enter the language"}
+#             ),
+#         }
+
+
+# class BookFormatForm(forms.ModelForm):
+#     is_active = forms.TypedChoiceField(
+#         coerce=lambda x: x == "True",
+#         choices=[(True, "Active"), (False, "In Active")],
+#         widget=forms.RadioSelect(),
+#         required=False,
+#         initial=True,
+#         label="Choose the status of the book",
+#     )
+
+#     class Meta:
+#         model = BookFormat
+#         fields = [
+#             "format",
+#             "is_active",
+#             "image_1",
+#             "image_2",
+#             "image_3",
+#             "is_new_available",
+#             "is_used_available",
+#             "publisher_name",
+#             "edition",
+#             "length",
+#             "narrator",
+#             "price",
+#             "publishing_date",
+#         ]
+
+#         labels = {
+#             "book_author_name": "Author Name",
+#             "format": "Format",
+#             "is_new_available": "Is New Available",
+#             "is_used_available": "Is Used Available",
+#             "publisher_name": "Publisher Name",
+#             "edition": "Edition",
+#             "length": "Length",
+#             "narrator": "Narrator",
+#             "price": "Price",
+#             "publishing_date": "Publishing Date",
+#         }
+
+#         widgets = {
+#             "format": forms.Select(attrs={"class": "form-control"}),
+#             "is_new_available": forms.NumberInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "enter the number of available new books",
+#                 }
+#             ),
+#             "is_used_available": forms.NumberInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "enter the number of available used books",
+#                 }
+#             ),
+#             "publisher_name": forms.TextInput(attrs={"class": "form-control"}),
+#             "edition": forms.TextInput(
+#                 attrs={"class": "form-control", "placeholder": "Rebound version / 2012"}
+#             ),
+#             "length": forms.NumberInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "enter the number of pages of a book",
+#                 }
+#             ),
+#             "narrator": forms.TextInput(attrs={"class": "form-control"}),
+#             "price": forms.TextInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "step": "0.01",
+#                     "placeholder": "Price must be between 1 and 999999.99.",
+#                 }
+#             ),
+#             "publishing_date": forms.DateInput(attrs={"format": "%Y-%m-%d"}),
+#         }

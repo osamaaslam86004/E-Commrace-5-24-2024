@@ -132,6 +132,12 @@ class CustomerProfile(models.Model):
 
 
 class SellerProfile(models.Model):
+    class Meta:
+        permissions = [
+            ("seller_publish_post", "Can publish post"),
+            ("seller_feature_post", "Can feature post"),
+        ]
+
     seller_profile = models.OneToOneField(
         UserProfile,
         on_delete=models.CASCADE,
@@ -220,6 +226,12 @@ class ManagerProfile(models.Model):
 
 
 class AdministratorProfile(models.Model):
+    class Meta:
+        permissions = [
+            ("admin_publish_post", "Can publish post"),
+            ("admin_feature_post", "Can feature post"),
+        ]
+
     user = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,

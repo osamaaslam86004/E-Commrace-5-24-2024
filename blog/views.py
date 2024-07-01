@@ -9,6 +9,7 @@ from i.decorators import user_comment_permission_required
 from django.views.generic import TemplateView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.http import JsonResponse
 
 
 def PostListView(request):
@@ -25,11 +26,10 @@ def my_posts_list(request):
             "-created_on"
         )
     else:
-        context = "visit my posts section"
         return render(
             request,
             "permission_denied.html",
-            {"user_email": request.user.email, "user_permission": context},
+            {"user_email": request.user.email},
         )
     return render(request, "myposts.html", {"posts": posts})
 
@@ -109,7 +109,7 @@ class CreatePostView(LoginRequiredMixin, TemplateView):
                         messages.info(request, "Successfully added a blog post")
                         return redirect("blog:live_post", slug=post.slug)
                 except Exception as e:
-                    print(e)
+                    return JsonResponse({"detail": str(e)})
             else:
                 return render(request, self.template_name, {"form": form})
         else:
@@ -212,7 +212,7 @@ def search_results_view(request):
     if query:
         post = all_post.filter(title__icontains=query, status=True)
     else:
-        post = []
+        post = Post.objects.none()  # return empty queryset
 
     context = {"post": post, "count": post.count(), "query": query}
     return render(request, "search_results.html", context)

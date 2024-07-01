@@ -386,6 +386,32 @@ class MonitorsForm(forms.ModelForm):
             )
         return item_weight
 
+    def clean_price(self):
+        price = self.cleaned_data.get("price")
+        if price <= 0 or price > 9999999999:
+            raise forms.ValidationError(
+                "Item weight must greater than 0 and less than 9999999999."
+            )
+        return price
+
+    # def clean_iamge_1(self):
+    #     image_1 = self.cleaned_data.get("image_1")
+    #     if image_1 is None:
+    #         return image_1
+    #     return image_1
+
+    # def clean_iamge_2(self):
+    #     image_2 = self.cleaned_data.get("image_2")
+    #     if image_2 is None:
+    #         return image_2
+    #     return image_2
+
+    # def clean_iamge_3(self):
+    #     image_3 = self.cleaned_data.get("image_3")
+    #     if image_3 is None:
+    #         return image_3
+    #     return image_3
+
 
 class LaptopAccessoriesForm(forms.ModelForm):
     class Meta:

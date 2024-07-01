@@ -21,11 +21,7 @@ def assign_user_group(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=CustomSocialAccount)
 def link_social_account(sender, instance, created, **kwargs):
-    if (
-        created
-        and instance.user.user_google_id is None
-        or instance.user.user_google_id is "NULL"
-    ):
+    if created and instance.user.user_google_id is None:
         # Generate a 7-digit positive integer code
         unique_code = randint(
             1000000, 9999999

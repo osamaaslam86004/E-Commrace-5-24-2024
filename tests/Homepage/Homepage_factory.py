@@ -47,7 +47,7 @@ class CustomUserOnlyFactory(DjangoModelFactory):
     image = factory.Faker("image_url")
     user_google_id = None
     # password = factory.LazyAttribute(lambda x: fake.password())
-    password = factory.PostGenerationMethodCall("set_password", "Man1122334455!")
+    password = factory.PostGenerationMethodCall("set_password", "testpass123")
 
     @factory.lazy_attribute
     def user_type(self):

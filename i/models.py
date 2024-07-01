@@ -197,9 +197,9 @@ class Monitors(models.Model):
     built_speakers = models.CharField(max_length=255, blank=True, default="yes")
     monitor_id = models.AutoField(primary_key=True)
     price = models.DecimalField(
-        default=0.00,
         max_digits=10,
         decimal_places=2,
+        blank=False,
         validators=[
             MinValueValidator(
                 limit_value=1, message="Price must be greater than or equal to 1."
@@ -215,16 +215,14 @@ class Monitors(models.Model):
         ProductCategory,
         on_delete=models.CASCADE,
         related_name="Monitors_Product_Category",
-        null=True,
     )
     Computer_SubCategory = models.ForeignKey(
         ComputerSubCategory,
         on_delete=models.CASCADE,
         related_name="Monitors_Computer_Subcategory",
-        null=True,
     )
     user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="monitor_user", null=True
+        CustomUser, on_delete=models.CASCADE, related_name="monitor_user"
     )
 
     def __str__(self):
