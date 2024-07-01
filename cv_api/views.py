@@ -733,38 +733,11 @@ class DeleteCVForUser(View):
             url = f"https://osamaaslam.pythonanywhere.com/resume/api/get-personal-info-data/{personal_info_id}/"
 
         try:
-            response = requests.delete(url, headers=headers, verify=False)
-            # response.raise_for_status()
+            response = requests.delete(url, headers=headers, verify=False, timeout=5)
+            response.raise_for_status()
 
-            if response.status_code == 204 or response.status_code == 200:
-                # Get all PersonalInfo instances for current user
-                instances_of_current_user = PersonalInfo.objects.select_related(
-                    "user_id_for_personal_info"
-                )
-
-                if response.json()["status"] == "DELETED":
-                    # Get the required instance
-                    required_instance = instances_of_current_user.filter(
-                        api_id_of_cv=response.json()["id"],
-                        api_user_id_for_cv=response.json()["user_id"],
-                    ).first()
-
-                    # if exist, because Webhhook Fails!
-                    if required_instance:
-                        print("-S T A T U S    D E L E T E D    M A N U A L L  Y-")
-                        required_instance.delete()
-                        messages.success(request, "Cv DELETED successfully!")
-                else:
-                    messages.info(request, "Fail to Delete Cv, Try Again!")
-                    # get the required instance
-                    required_instance = instances_of_current_user.filter(
-                        api_id_of_cv=response.json()["id"],
-                        api_user_id_for_cv=response.json()["user_id"],
-                    ).first()
-                    required_instance.status = "FAILED"
-
-                    required_instance.save()
-
+        except requests.exceptions.Timeout:
+            messages.success(request, "CV deleted successfully!")
             return HttpResponsePermanentRedirect("/")
 
         except requests.RequestException as e:
@@ -774,6 +747,37 @@ class DeleteCVForUser(View):
             )
 
             return HttpResponsePermanentRedirect("/")
+
+        if response.status_code == 204 or response.status_code == 200:
+            # Get all PersonalInfo instances for current user
+            instances_of_current_user = PersonalInfo.objects.select_related(
+                "user_id_for_personal_info"
+            )
+
+            if response.json()["status"] == "DELETED":
+                # Get the required instance
+                required_instance = instances_of_current_user.filter(
+                    api_id_of_cv=response.json()["id"],
+                    api_user_id_for_cv=response.json()["user_id"],
+                ).first()
+
+                # if exist, because Webhhook Fails!
+                if required_instance:
+                    print("-S T A T U S    D E L E T E D    M A N U A L L  Y-")
+                    required_instance.delete()
+                    messages.success(request, "Cv DELETED successfully!")
+            else:
+                messages.info(request, "Fail to Delete Cv, Try Again!")
+                # get the required instance
+                required_instance = instances_of_current_user.filter(
+                    api_id_of_cv=response.json()["id"],
+                    api_user_id_for_cv=response.json()["user_id"],
+                ).first()
+                required_instance.status = "FAILED"
+
+                required_instance.save()
+
+        return HttpResponsePermanentRedirect("/")
 
 
 @method_decorator(csrf_exempt, name="dispatch")
