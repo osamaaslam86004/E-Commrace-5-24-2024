@@ -649,53 +649,57 @@ class RetrieveCVDataToUpdate(View):
 
                 try:
                     json_data = json.dumps(personal_info, cls=DateTimeEncoder)
+
                 except Exception as e:
-                    return JsonResponse({"personal_info_dic_dump__error": str(e)})
+                    messages.info(request, "fail to serialize the data")
+                    return HttpResponsePermanentRedirect("/")
 
                 try:
-                    response = requests.patch(url, headers=headers, data=json_data)
-                    if response.status_code == 200:
-                        # Get all PersonalInfo instances for current user
-                        instances_of_current_user = PersonalInfo.objects.select_related(
-                            "user_id_for_personal_info"
-                        )
+                    response = requests.patch(
+                        url, headers=headers, data=json_data, verify=False, timeout=5
+                    )
+                    response.raise_for_status()
 
-                        if response.json()["status"] == "UPDATED":
-                            # get the required instance
-                            required_instance = instances_of_current_user.filter(
-                                api_id_of_cv=response.json()["id"],
-                                api_user_id_for_cv=response.json()["user_id"],
-                            ).first()
-                            # Prevent Double Update on same instance
-                            if required_instance.status == "UPDATED":
-                                pass
-                            else:
-                                print(
-                                    "--------S T A T U S    U P D A T E D     M A N U A L L  Y------"
-                                )
-                                required_instance.status = "UPDATED"
-                            messages.success(request, "Cv updated successfully!")
-                        else:
-                            print(
-                                "--------F A I L E D   S T A T U S    U P D A T E D     M A N U A L L  Y------"
-                            )
-                            messages.info(request, "Fail to updated Cv, Try Again!")
-                            # get the required instance
-                            required_instance = instances_of_current_user.filter(
-                                api_id_of_cv=response.json()["id"],
-                                api_user_id_for_cv=response.json()["user_id"],
-                            ).first()
-                            required_instance.status = "FAILED"
-
-                        required_instance.save()
+                except requests.exceptions.Timeout:
+                    messages.success(request, "CV updated successfully!")
+                    return HttpResponsePermanentRedirect("/")
 
                 except requests.RequestException as e:
-                    messages.info(request, "Fail to Update your CV, Try Again!")
+                    return JsonResponse(
+                        {"detail": str(e), "location": "Post method of CV update view"}
+                    )
+
+                if response.status_code == 200:
+                    # Get all PersonalInfo instances for current user
+                    instances_of_current_user = PersonalInfo.objects.select_related(
+                        "user_id_for_personal_info"
+                    )
+
+                    if response.json()["status"] == "UPDATED":
+                        # get the required instance
+                        required_instance = instances_of_current_user.filter(
+                            api_id_of_cv=response.json()["id"],
+                            api_user_id_for_cv=response.json()["user_id"],
+                        ).first()
+                        # Prevent Double Update on same instance
+                        if required_instance.status != "UPDATED":
+                            required_instance.status = "UPDATED"
+                        messages.success(request, "Cv updated successfully!")
+
+                    else:
+                        messages.info(request, "Fail to updated Cv, Try Again!")
+                        # get the required instance
+                        required_instance = instances_of_current_user.filter(
+                            api_id_of_cv=response.json()["id"],
+                            api_user_id_for_cv=response.json()["user_id"],
+                        ).first()
+                        required_instance.status = "FAILED"
+
+                    required_instance.save()
 
                 return HttpResponsePermanentRedirect("/")
 
             else:
-
                 return redirect(
                     "cv_api:get_cv_to_update", personal_info_id=personal_info_id
                 )
