@@ -3,7 +3,6 @@ import logging
 import random
 import factory.django
 from faker import Faker
-from django.core.files.base import ContentFile
 from i.models import (
     Monitors,
     ProductCategory,

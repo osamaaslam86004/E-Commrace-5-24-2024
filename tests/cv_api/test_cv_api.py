@@ -1,11 +1,9 @@
 import pytest
 import logging
-import requests
 import json
 from django.http.response import JsonResponse
 from django.urls import reverse
 from django.contrib.messages import get_messages
-from django.test import Client
 from unittest.mock import patch, Mock
 from cv_api.models import TokensForUser, PersonalInfo
 from Homepage.models import UserProfile
@@ -22,17 +20,6 @@ from tests.cv_api.cv_api_factory import (
     ProjectsFactory,
     PublicationFactory,
 )
-from cv_api.forms import (
-    PersonalInfoForm,
-    OverviewForm,
-    EducationfoForm,
-    JobfoForm,
-    JobAccomplishmentfoForm,
-    ProjectsForm,
-    ProgrammingAreaForm,
-    SkillAndSkillLevelForm,
-    PublicationForm,
-)
 from django_mock_queries.query import MockSet
 from django_mock_queries.mocks import mocked_relations
 
@@ -42,9 +29,9 @@ faker_logger = logging.getLogger("faker")
 faker_logger.setLevel(logging.WARNING)
 
 
-@pytest.fixture
-def client():
-    return Client()
+# @pytest.fixture
+# def client():
+#     return Client()
 
 
 @pytest.fixture

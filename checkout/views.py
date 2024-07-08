@@ -1,5 +1,6 @@
-from django.shortcuts import render, redirect
-import stripe, json
+from django.shortcuts import render, redirect, get_object_or_404
+import json
+import stripe
 from django.http import JsonResponse, HttpResponse
 from django.views import View
 from django.conf import settings
@@ -9,17 +10,8 @@ from cart.models import Cart, CartItem
 from django.contrib import messages
 from checkout.models import Payment, Refund
 from cart.cart_items import update_cart_items
-from django.shortcuts import redirect
-from django.contrib.auth import logout, login
-
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views import View
-from django.http import JsonResponse
-from django.conf import settings
-from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-import stripe
+
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 

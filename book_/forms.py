@@ -278,6 +278,18 @@ class ReviewForm(forms.ModelForm):
             ),
         }
 
+    # def clean_image_1(self):
+    #     image_1 = self.cleaned_data["image_1"]
+    #     if image_1 is None:
+    #         raise ValidationError("Please upload Image-1")
+    #     return image_1
+
+    # def clean_image_2(self):
+    #     image_2 = self.cleaned_data["image_2"]
+    #     if image_2 is None:
+    #         raise ValidationError("Please upload Image-1")
+    #     return image_2
+
 
 class CustomBookFormatFilterForm(forms.Form):
     FORMAT_CHOICES = [

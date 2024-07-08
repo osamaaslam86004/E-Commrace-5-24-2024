@@ -38,7 +38,7 @@ class Command(BaseCommand):
                 email="newadmin23@gmail.com",
             ).first()
 
-        userprofile_for_admin = UserProfile.objects.get(user=admin_user)
+        userprofile_for_admin = UserProfile.objects.filter(user=admin_user).first()
         admin_profile_instance = AdministratorProfile.objects.get_or_create(
             user=admin_user, admin_profile=userprofile_for_admin, experience_years=25
         )

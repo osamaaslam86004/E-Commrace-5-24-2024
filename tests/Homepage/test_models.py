@@ -1,6 +1,5 @@
 import pytest
 import logging
-import random
 from faker import Faker
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -9,13 +8,9 @@ from Homepage.models import (
     UserProfile,
     SellerProfile,
     CustomerProfile,
-    # CustomerServiceProfile,
-    # ManagerProfile,
-    # AdministratorProfile,
 )
 from tests.Homepage.Homepage_factory import (
     CustomUserOnlyFactory,
-    # UserProfileOnlyFactory,
     CustomUserOnlyFactory,
     CustomUserFactory_Without_UserProfile_PostGeneration,
     UserProfileFactory_CustomUserFactory_Without_UserProfile_PostGeneration,

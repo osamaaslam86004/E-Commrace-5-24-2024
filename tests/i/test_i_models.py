@@ -2,7 +2,6 @@
 import pytest
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
 from i.models import (
     ProductCategory,

@@ -411,18 +411,17 @@ class FilteredBooksView(ListView):
 
 class Book_Detail_View(DetailView):
     template_name = "book_detail_view.html"
-    model = BookAuthorName
+    model = BookFormat
 
-    def calculate_star_rating(self, format_id):
-        book_format = get_object_or_404(BookFormat, id=format_id)
-        average_rating = RatingCalculator.calculate_average_rating(book_format)
-        total_ratings = RatingCalculator.count_users_who_rated(book_format)
+    def calculate_star_rating(self):
+        average_rating = RatingCalculator.calculate_average_rating(self.object)
+        total_ratings = RatingCalculator.count_users_who_rated(self.object)
 
         star_ratings = {}
 
         for rating in [5, 4, 3, 2, 1]:
             star_ratings[rating] = RatingCalculator.count_star_ratings(
-                book_format, rating
+                self.object, rating
             )
 
             #  Calculate the with for star rating
@@ -439,19 +438,8 @@ class Book_Detail_View(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # self.get_object(), Django internally uses the URL parameters (such as pk or slug) to query
-        # the database for an instance of that model.
-        # If the object is not found or if there is an error in the URL parameters,
-        # get_object_or_404() is typically used to raise a 404 error,
-        # manually specify pk in URL in views.py and {% url 'Homepage:Home' pk=book.id %}
-        book = self.get_object()
-
-        format_id = self.kwargs.get("format_id")
-        book_format = get_object_or_404(BookFormat, id=format_id, book_author_name=book)
-        # formats = BookFormat.objects.filter(book_author_name=book)
-
-        reviews = Review.objects.filter(book_format=book_format)
-        ratings = Rating.objects.filter(book_format=book_format)
+        reviews = Review.objects.filter(book_format=self.object)
+        ratings = Rating.objects.filter(book_format=self.object)
         review_rating_dict = {}
 
         for review in reviews:
@@ -463,15 +451,17 @@ class Book_Detail_View(DetailView):
                 )
                 #    and corresponding rating objects
 
-        # formats = formats.annotate(avg_rating=Avg('rating_format__rating'),
-        #                           user_count=Count('rating_format__user'))
+                # formats = formats.annotate(avg_rating=Avg('rating_format__rating'),
+                #                           user_count=Count('rating_format__user'))
 
+        book_format = self.object
+        book = book_format.book_author_name
         [
             total_ratings,
             average_rating,
             star_ratings,
             width_percentages,
-        ] = self.calculate_star_rating(format_id)
+        ] = self.calculate_star_rating()
 
         # add product image URL to session cookie
         scheme = "https://" if self.request.is_secure() else "http://"
@@ -513,9 +503,9 @@ class Book_Detail_View_Add_Review_Form(View):
 
         try:
             book = get_object_or_404(BookAuthorName, id=book_author_name_id)
-            book_format = get_object_or_404(
-                BookFormat, id=format_id, book_author_name=book
-            )
+            print(f"book---------------------{book}")
+            book_format = get_object_or_404(BookFormat, id=format_id)
+            print(f"book format---------------------{book_format}")
 
             reviews = Review.objects.filter(book_format=book_format)
 
@@ -642,8 +632,8 @@ class Book_Detail_View_Update_Review_Form(View):
             new_review = review_form.save(commit=False)
 
             uploaded_images = {
-                "image_1": self.request.FILES["image_1"],
-                "image_2": self.request.FILES["image_2"],
+                "image_1": self.request.FILES.get("image_1", None),
+                "image_2": self.request.FILES.get("image_2", None),
             }
 
             if self.all_images_uploaded_by_user(uploaded_images):
@@ -669,7 +659,7 @@ class Book_Detail_View_Update_Review_Form(View):
                             self.request,
                             "images did not uploaded properly, Try again!",
                         )
-                        return redirect("i:monitor_add_review")
+                        return redirect("i:book_add_review")
 
                 new_review.user = self.request.user
                 new_review.book_format = review_instance.book_format
@@ -685,13 +675,14 @@ class Book_Detail_View_Update_Review_Form(View):
             else:
                 messages.error(request, "Please, upload all images")
                 return redirect(
-                    "book_:book_detail_view_update_review_form",
+                    "book_:edit_review_rating",
                     review_id=review_id,
                 )
         else:
             messages.error(request, "Form is not valid / Enter Star Rating.")
             return redirect(
-                "book_:book_detail_view_update_review_form", review_id=review_id
+                "book_:edit_review_rating",
+                review_id=review_id,
             )
 
     def get(self, request, review_id):
@@ -711,13 +702,13 @@ class Custom_Delete_Comment(View, PermissionRequiredMixin):
     def get(self, request, review_id):
         review_to_delete = Review.objects.get(id=review_id)
         book_format_id = review_to_delete.book_format.id
-        book_author_name_id = review_to_delete.book_format.book_author_name.id
+        # book_author_name_id = review_to_delete.book_format.book_author_name.id
 
         review_to_delete.delete()
         messages.success(self.request, "Message deleted successfully!")
 
         return redirect(
             "book_:book_detail_view",
-            pk=book_author_name_id,
+            pk=book_format_id,
             format_id=book_format_id,
         )

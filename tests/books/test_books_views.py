@@ -3,20 +3,21 @@ import io
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock import patch
-from django.test import Client
+
+# from django.test import Client
 from django.urls import reverse
 from django.contrib.messages import get_messages
 from cloudinary.uploader import upload
-from book_.models import BookFormat, BookAuthorName
+from book_.models import BookFormat
 from tests.Homepage.Homepage_factory import CustomUserOnlyFactory
 from tests.books.books_factory_classes import BookAuthorNameFactory, BookFormatFactory
 from tests.i.factory_classes import ProductCategoryFactory
 from book_.forms import BookAuthorNameForm, BookFormatForm
 
 
-@pytest.fixture
-def client():
-    return Client()
+# @pytest.fixture
+# def client():
+#     return Client()
 
 
 @pytest.fixture
@@ -108,9 +109,9 @@ def book_format_form_data(build_setup_testing_Bookformat, create_image):
             "price": float(book_format.price),
             "is_active": book_format.is_active,
             "restock_threshold": book_format.restock_threshold,
-            "image_1": "image_1",
-            "image_2": "image_2",
-            "image_3": "image_3",
+            "image_1": create_image,
+            "image_2": create_image,
+            "image_3": create_image,
         }
         return form_data, user
 
@@ -120,7 +121,7 @@ def book_format_form_data(build_setup_testing_Bookformat, create_image):
 @pytest.mark.django_db
 class Test_CreateBookFormatsView:
 
-    @patch("cloudinary.uploader.upload")
+    @patch("book_.views.upload")
     def test_create_book_format_success(
         self,
         mock_upload,
@@ -145,45 +146,41 @@ class Test_CreateBookFormatsView:
             "image_3": book_data.pop("image_3"),
         }
 
-        with patch("django.core.files.uploadedfile.SimpleUploadedFile") as mock_file:
-            mock_file.side_effect = [
-                files["image_1"],
-                files["image_2"],
-                files["image_3"],
-            ]
+        # assert files is not empty
+        assert all(files.values())
 
-            with patch(
-                "book_.views.Create_Book_Formats_View.all_images_uploaded_by_user"
-            ) as mock_all_files_uploaded:
-                mock_all_files_uploaded.return_value = True
+        with patch(
+            "book_.views.Create_Book_Formats_View.all_images_uploaded_by_user"
+        ) as mock_all_files_uploaded:
+            mock_all_files_uploaded.return_value = True
 
-                book_format_form = BookFormatForm(book_data)
-                assert book_format_form.is_valid()
+            book_format_form = BookFormatForm(book_data)
+            print(f"book format form------------ {book_format_form.errors}")
+            assert book_format_form.is_valid()
 
-                book_author_name = BookAuthorNameForm(book_author_data)
-                assert book_author_name.is_valid()
+            book_author_name = BookAuthorNameForm(book_author_data)
+            print(f"book author name form------------ {book_author_name.errors}")
+            assert book_author_name.is_valid()
 
-                response = client.post(
-                    reverse("book_:create_update_book_formats"),
-                    data={**book_author_data, **book_data},
-                    files=files,
-                    enctype="multipart/form-data",
-                )
-                messages = list(get_messages(response.wsgi_request))
+            response = client.post(
+                reverse("book_:create_update_book_formats"),
+                data={**book_author_data, **book_data},
+                files=files,
+                enctype="multipart/form-data",
+            )
 
-                for message in messages:
-                    print(f"mesages------------ {message}")
+            messages = list(get_messages(response.wsgi_request))
+            for message in messages:
+                print(f"mesages------------ {message}")
+            assert str(messages[0]) == "All forms submitted successfully"
 
-                assert response.status_code == 302
-                assert response.url == reverse("i:success_page")
+            assert response.status_code == 301
+            assert response.url == reverse("i:success_page")
 
-                messages = list(get_messages(response.wsgi_request))
-                assert str(messages[0]) == "All forms submitted successfully"
-
-                book_format = BookFormat.objects.get(user=user)
-                assert book_format.image_1 == "http://example.com/image1.jpg"
-                assert book_format.image_2 == "http://example.com/image2.jpg"
-                assert book_format.image_3 == "http://example.com/image3.jpg"
+            book_format = BookFormat.objects.get(user=user)
+            assert book_format.image_1 == "http://example.com/image1.jpg"
+            assert book_format.image_2 == "http://example.com/image2.jpg"
+            assert book_format.image_3 == "http://example.com/image3.jpg"
 
     @patch("cloudinary.uploader.upload")
     def test_create_book_format_missing_image(

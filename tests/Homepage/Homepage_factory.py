@@ -26,17 +26,6 @@ from tests.Homepage.Custom_Permissions import (
 
 fake = Faker()
 
-# class CustomUserFactory(DjangoModelFactory):
-#     class Meta:
-#         model = CustomUser
-
-#     username = factory.Faker("user_name")
-#     email = factory.LazyAttribute(lambda _: Faker().unique.email())
-#     user_type = factory.Iterator([choice[0] for choice in CustomUser.USER_TYPE_CHOICES])
-#     image = factory.Faker("image_url")
-#     user_google_id = factory.Faker("random_number")
-#     password = factory.PostGenerationMethodCall("set_password", "testpass123")
-
 
 class CustomUserOnlyFactory(DjangoModelFactory):
     class Meta:
@@ -113,9 +102,6 @@ class CustomUserOnlyFactory(DjangoModelFactory):
     def create_user_profile(self, create, extracted, **kwargs):
         if not create:
             return
-
-        # Note: Use self.refresh_from_db() to refresh the instance to get the correct user instance
-        self.refresh_from_db()
 
         UserProfile.objects.create(
             user=self,

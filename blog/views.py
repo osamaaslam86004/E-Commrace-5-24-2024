@@ -161,7 +161,7 @@ def update_comment(request, slug, comment_id):
 
     if request.user != comment.comments_user:
         messages.error(request, "You do not have permission to edit this comment.")
-        return redirect("blog:post_list")
+        return redirect("blog:blog_post")
 
     if request.method == "POST":
         form = CommentForm(request.POST, instance=comment)
@@ -200,7 +200,8 @@ def delete_comment(request, slug, comment_id):
 def search_view(request):
     all_post = Post.objects.all()
     context = {"count": all_post.count()}
-    return render(request, "base_post.html", context)
+    # return render(request, "base_post.html", context)
+    return render(request, "blog_base.html", context)
 
 
 def search_results_view(request):
@@ -234,7 +235,13 @@ class Search_Results_For_Admin_My_Post(ListView):
 
         status_requested = self.request.GET.get("value")
         if status_requested:
-            filter_conditions &= Q(status__exact=status_requested)
+            try:
+                status_requested = int(status_requested)
+                filter_conditions &= Q(status__exact=status_requested)
+            except ValueError:
+                filter_conditions &= Q(
+                    status__exact=1
+                )  # Or handle the error appropriately
 
         queryset = queryset.filter(filter_conditions)
         return queryset
@@ -244,9 +251,15 @@ class Search_Results_For_Admin_My_Post(ListView):
 
         search_requested = self.request.GET.get("search")
         status_requested = self.request.GET.get("value")
+
+        if status_requested is not None:
+            status_requested = int(status_requested)
+            context["status"] = "Publish" if status_requested == 1 else "Draft"
+        else:
+            context["status"] = "Nill"
+
         admin_post_detail = Post.admin_post_count(self, self.request.user)
 
-        context["status"] = status_requested
         context["search"] = search_requested
         context["publish"] = admin_post_detail[0]
         context["draft"] = admin_post_detail[1]

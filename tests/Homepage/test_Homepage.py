@@ -1,31 +1,19 @@
 import pytest
 from unittest.mock import patch, Mock
 from django.urls import reverse
-from django.test import RequestFactory, Client
+from django.test import RequestFactory
 from tests.Homepage.Homepage_factory import CustomUserFactory, CustomUserOnlyFactory
-from Homepage.models import (
-    CustomUser,
-    UserProfile,
-    CustomSocialAccount,
-    CustomerProfile,
-    CustomerServiceProfile,
-)
+from Homepage.models import CustomUser, UserProfile, CustomSocialAccount
 from Homepage.forms import (
     SignUpForm,
     LogInForm,
-    CustomerProfileForm,
-    UserProfileForm,
-    CustomerProfileForm,
     CustomUserImageForm,
 )
 from Homepage.views import (
     HomePageView,
     CustomLoginView,
     Payment,
-    CustomPasswordResetConfirmView,
-    CustomerProfilePageView,
 )
-from django.test import Client
 import logging
 from django.contrib.messages import get_messages
 import requests_mock
@@ -58,9 +46,9 @@ def request_factory():
     return RequestFactory()
 
 
-@pytest.fixture
-def client():
-    return Client()
+# @pytest.fixture(scope="module")
+# def client():
+#     return Client()
 
 
 @pytest.fixture

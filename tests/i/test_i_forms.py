@@ -1,5 +1,4 @@
 import pytest
-from django import forms
 import io
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -13,7 +12,6 @@ from i.forms import (
 from tests.Homepage.Homepage_factory import CustomUserOnlyFactory
 from tests.i.factory_classes import (
     MonitorsFactory,
-    ReviewFactory,
     ProductCategoryFactory,
     ComputerSubCategoryFactory,
 )
