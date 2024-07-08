@@ -133,26 +133,26 @@ WSGI_APPLICATION = "iii.wsgi.application"
 
 
 # Database
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("POSTGRES_DATABASE"),
-        "USER": config("POSTGRES_USER"),
-        "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST": config("POSTGRES_HOST"),
-        "PORT": "5432",
-        "OPTIONS": {
-            "sslmode": "require",
-        },
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": config("POSTGRES_DATABASE"),
+#         "USER": config("POSTGRES_USER"),
+#         "PASSWORD": config("POSTGRES_PASSWORD"),
+#         "HOST": config("POSTGRES_HOST"),
+#         "PORT": "5432",
+#         "OPTIONS": {
+#             "sslmode": "require",
+#         },
+#     }
+# }
 
 
 # Password validation
